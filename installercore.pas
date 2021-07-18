@@ -39,9 +39,9 @@ const
   DEFAULTLAZARUSVERSION = '2.0.12';
 
   FPCTRUNKVERSION       = '3.3.1';
-  FPCTRUNKBOOTVERSION   = '3.2.2';
+  LAZARUSTRUNKVERSION   = '2.3.0';
 
-  LAZARUSTRUNKVERSION   = '2.1.0';
+  FPCTRUNKBOOTVERSION   = '3.2.2';
 
   DEFAULTFREEBSDVERSION = 12;
 
@@ -64,6 +64,14 @@ const
   FPCPKGCOMPILERTEMPLATE= 'default'; // fppkg default compiler template
 
   FPCCONFIGFILENAME     = 'fpc.cfg';
+
+  GITLAB                = 'https://gitlab.com/freepascal.org/';
+
+  FPCGITLAB             = GITLAB + 'fpc';
+  FPCGITLABREPO         = FPCGITLAB + '/testconversion2.git';
+
+  LAZARUSGITLAB         = GITLAB + 'lazarus';
+  LAZARUSGITLABREPO     = LAZARUSGITLAB + '/lazarus_test_conversion_2.git';
 
   SVNBASEHTTP           = 'https://svn.';
   SVNBASESVN            = 'svn://svn.';
@@ -357,6 +365,7 @@ type
     FDesiredRevision: string;
     FActualRevision: string;
     FDesiredBranch: string;
+    FDesiredTag: string;
     // Stores tprocessex exception info:
     FErrorLog: TStringList;
     FHTTPProxyHost: string;
@@ -488,6 +497,7 @@ type
     property DesiredRevision: string write FDesiredRevision;
     property ActualRevision: string read FActualRevision;
     property DesiredBranch: string write FDesiredBranch;
+    property DesiredTag: string write FDesiredTag;
     // If using HTTP proxy: host
     property HTTPProxyHost: string read FHTTPProxyHost write SetHTTPProxyHost;
     // If using HTTP proxy: port (optional, default 8080)
@@ -1739,9 +1749,13 @@ begin
   begin
     Output:=(aClient as TGitClient).GetSVNRevision;
     if (Length(Output)>0) then
-    begin
-      aBeforeRevision := Output;
-    end;
+      aBeforeRevision := Output
+    else
+      begin
+        Output:=(aClient as TGitClient).LocalRevision;
+        if (Length(Output)>0) then
+          aBeforeRevision := Output;
+      end;
   end;
 
   if Assigned(UpdateWarnings) then
@@ -1766,6 +1780,8 @@ begin
 
   aClient.DesiredRevision := FDesiredRevision; //We want to update to this specific revision
   aClient.DesiredBranch := FDesiredBranch; //We want to update to this specific branch
+  aClient.DesiredTag := FDesiredTag; //We want to update to this specific branch
+
   Output:=localinfotext+'Running '+UpperCase(aClient.RepoExecutableName)+' checkout or update';
   if Length(aClient.DesiredRevision)>0 then
   begin
@@ -2267,8 +2283,11 @@ begin
 
       if NOT DownloadSuccess then
       begin
-        Infoln(localinfotext+'Error downloading binutil: ' + FUtilFiles[Counter].FileName + ' into ' + ExtractFileDir(InstallPath) + '.',etError);
-        Inc(Errors);
+        //if (FUtilFiles[Counter].FileName<>'libiconv-2.dll') then
+        begin
+          Infoln(localinfotext+'Error downloading binutil: ' + FUtilFiles[Counter].FileName + ' into ' + ExtractFileDir(InstallPath) + '.',etError);
+          Inc(Errors);
+        end;
       end
       else
       begin
@@ -2460,9 +2479,6 @@ begin
       if OperationSucceeded then
         OperationSucceeded:=SimpleExportFromSVN('DownloadOpenSSL',OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,SafeGetApplicationPath);
     end;
-
-    if OperationSucceeded
-       then Infoln(localinfotext+'SVN OpenSLL library files download from '+OPENSSL_URL_LATEST_SVN+' ok.',etWarning)
   end;
 
   // Direct download OpenSSL from from Lazarus binaries
@@ -2475,14 +2491,15 @@ begin
       OpenSSLFileName:='ssleay32.dll';
       OperationSucceeded:=GetFile(OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,SafeGetApplicationPath+OpenSSLFileName,true,true);
     end;
-
-    if OperationSucceeded
-       then Infoln(localinfotext+'Direct OpenSLL library files download from '+OPENSSL_URL_LATEST_SVN+' ok.',etWarning)
   end;
 
   // Direct download OpenSSL from public sources
   if (NOT OperationSucceeded) then
   begin
+    localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (DownloadOpenSSL): ';
+
+    Infoln(localinfotext+'Got OpenSLL from '+OPENSSL_URL_LATEST_SVN+'.',etWarning);
+
     OpenSSLFileName := GetTempFileNameExt('FPCUPTMP','zip');
 
     for i:=0 to (Length(OpenSSLSourceURL)-1) do
@@ -3028,7 +3045,7 @@ begin
   begin
     if ( (NOT IsFPCInstaller) OR (IsFPCInstaller AND Assigned(CrossInstaller)) ) then
     begin
-      //Infoln('donalf: Compiler '+result+' not [yet] found.',etInfo);
+      Infoln('FPC compiler '+result+' not found. Fatal.',etError);
       raise Exception.CreateFmt('FPC compiler "%s" not found.', [result]);
     end;
     result:='';
@@ -3079,7 +3096,8 @@ begin
 
   // Do we need GIT
   if result=nil then if DirectoryExists(IncludeTrailingPathDelimiter(FSourceDirectory)+'.git') then result:=GitClient;
-  if result=nil then if ( {(Pos('GITHUB',UpperCase(FURL))>0) OR} (Pos('.GIT',UpperCase(FURL))>0) ) then result:=GitClient;
+  if result=nil then if ( {(Pos('github',LowerCase(FURL))>0) OR} (Pos('.GIT',UpperCase(FURL))>0) ) then result:=GitClient;
+  if result=nil then if (Pos('gitlab.com/freepascal.org',LowerCase(FURL))>0) then result:=GitClient;
 
   // Do we need HG
   if result=nil then if ( (Pos('hg.code.sf.net',LowerCase(FURL))>0) ) then result:=HGClient;
@@ -3736,7 +3754,7 @@ begin
   // Only handle Lazarus !
   if (ModuleName<>_LAZARUS) then exit;
 
-  if TryStrToInt(aRevision,NumRevision) then
+  //if TryStrToInt(aRevision,NumRevision) then
   begin
     RevFileName:='';
 
@@ -3752,11 +3770,13 @@ begin
         begin
           RevisionStringList.Add(RevisionIncComment);
           ConstStart := Format('const %s = ''', [ConstName]);
-          RevisionStringList.Add(ConstStart+InttoStr(NumRevision)+''';');
+          //RevisionStringList.Add(ConstStart+InttoStr(NumRevision)+''';');
+          RevisionStringList.Add(ConstStart+aRevision+''';');
         end;
         if (ModuleName=_FPC) then
         begin
-          RevisionStringList.Add(''''+InttoStr(NumRevision)+'''');
+          //RevisionStringList.Add(''''+InttoStr(NumRevision)+'''');
+          RevisionStringList.Add(''''+aRevision+'''');
         end;
         RevisionStringList.SaveToFile(RevFileName);
         result:=true;

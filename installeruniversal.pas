@@ -1104,6 +1104,11 @@ begin
             s2:=ReadString('NewProject',s,s2);
             if DirectoryExists(s2) then WriteString('NewProject',s,s2);
 
+            s:='PathToAndroidNDK';
+            s2:=GetAndroidNDKDir;
+            s2:=ReadString('NewProject',s,s2);
+            if DirectoryExists(s2) then WriteString('NewProject',s,s2);
+
           finally
             Free;
           end;
@@ -1705,6 +1710,7 @@ begin
       // Common keywords for all repo methods
       FDesiredRevision:=GetValueFromKey('Revision',PackageSettings);
       FDesiredBranch:=GetValueFromKey('Branch',PackageSettings);
+      FDesiredTag:=GetValueFromKey('Tag',PackageSettings);
 
       // Handle Git URLs
       RemoteURL:=GetValueFromKey('GITURL',PackageSettings);
@@ -2926,7 +2932,7 @@ begin
 
   try
     ini.ReadSectionValues('ALIAS'+aDictionary,sl);
-    for i:=0 to sl.Count-1 do
+    for i:=0 to Pred(sl.Count) do
     begin
       if sl.ValueFromIndex[i]=aAlias then
       begin
@@ -2969,6 +2975,10 @@ begin
           if aDictionary='fpcURL' then result:=FPCBASESVNURL+'/svn/fpc/tags/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll]);
           {$ifndef FPCONLY}
           if aDictionary='lazURL' then result:=FPCBASESVNURL+'/svn/lazarus/tags/lazarus_'+StringReplace(DEFAULTLAZARUSVERSION,'.','_',[rfReplaceAll]);
+          {$endif}
+          if aDictionary='fpcTAG' then result:=StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll]);
+          {$ifndef FPCONLY}
+          if aDictionary='lazTAG' then result:=StringReplace(DEFAULTLAZARUSVERSION,'.','_',[rfReplaceAll]);
           {$endif}
         end;
 
