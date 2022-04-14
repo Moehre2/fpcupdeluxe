@@ -23,6 +23,8 @@ unit installerCore;
 
 {$mode objfpc}{$H+}
 
+{$i fpcupdefines.inc}
+
 interface
 
 uses
@@ -36,12 +38,11 @@ uses
 
 const
   DEFAULTFPCVERSION     = '3.2.2';
-  DEFAULTLAZARUSVERSION = '2.0.12';
 
   FPCTRUNKVERSION       = '3.3.1';
-  LAZARUSTRUNKVERSION   = '2.3.0';
-
   FPCTRUNKBOOTVERSION   = '3.2.2';
+
+  LAZARUSTRUNKVERSION   = '2.3.0';
 
   DEFAULTFREEBSDVERSION = 12;
 
@@ -68,10 +69,16 @@ const
   GITLAB                = 'https://gitlab.com/freepascal.org/';
 
   FPCGITLAB             = GITLAB + 'fpc';
-  FPCGITLABREPO         = FPCGITLAB + '/testconversion2.git';
+  FPCGITLABREPO         = FPCGITLAB + '/source';
+  FPCGITLABBINARIES     = FPCGITLAB + '/build';
+  FPCTRUNKBRANCH        = 'main';
+  FPCBINARIES           = FPCGITLABBINARIES + '/-/raw/'+FPCTRUNKBRANCH;
 
   LAZARUSGITLAB         = GITLAB + 'lazarus';
-  LAZARUSGITLABREPO     = LAZARUSGITLAB + '/lazarus_test_conversion_2.git';
+  LAZARUSGITLABREPO     = LAZARUSGITLAB + '/lazarus';
+  LAZARUSGITLABBINARIES = LAZARUSGITLAB + '/binaries';
+  LAZARUSTRUNKBRANCH    = 'main';
+  LAZARUSBINARIES       = LAZARUSGITLABBINARIES + '/-/raw/'+LAZARUSTRUNKBRANCH;
 
   SVNBASEHTTP           = 'https://svn.';
   SVNBASESVN            = 'svn://svn.';
@@ -87,7 +94,6 @@ const
 
   LAZARUSFTPSNAPSHOTURL = LAZARUSFTPURL+'snapshot/';
 
-  BINUTILSURL           = FPCBASESVNURL + '/svn/fpcbuild';
 
   PACKAGESLOCATION      = 'packages.fppkg';
   PACKAGESCONFIGDIR     = 'fpcpkgconfig';
@@ -96,20 +102,14 @@ const
   REVINCFILENAME        = 'revision.inc';
 
   {$IFDEF WINDOWS}
-  //FPC prebuilt binaries of the GNU Binutils
-  PREBUILTBINUTILSURL      = BINUTILSURL + '/binaries/i386-win32';
-  PREBUILTBINUTILSURLWINCE = BINUTILSURL + '/tags/release_3_0_4/install/crossbinwce';
+  PREBUILTBINUTILSURLWINCE = FPCBINARIES+'/install/crossbinwce';
   {$ENDIF}
 
-  LAZARUSBINARIES = FPCBASESVNURL + '/svn/lazarus/binaries';
-
-  CHM_URL_LATEST_SVN = LAZARUSBINARIES + '/docs/chm';
-
   {$ifdef win64}
-  OPENSSL_URL_LATEST_SVN = LAZARUSBINARIES + '/x86_64-win64/openssl';
+  OPENSSL_URL_LATEST = LAZARUSBINARIES + '/x86_64-win64/openssl';
   {$endif}
   {$ifdef win32}
-  OPENSSL_URL_LATEST_SVN = LAZARUSBINARIES + '/i386-win32/openssl';
+  OPENSSL_URL_LATEST = LAZARUSBINARIES + '/i386-win32/openssl';
   {$endif}
 
   {$IFDEF DEBUG}
@@ -124,20 +124,19 @@ const
   //NASMWIN64URL='https://www.nasm.us/pub/nasm/releasebuilds/2.13/win64/nasm-2.13-win64.zip';
   NASMWIN32URL='https://www.nasm.us/pub/nasm/releasebuilds/2.14/win32/nasm-2.14-win32.zip';
   NASMWIN64URL='https://www.nasm.us/pub/nasm/releasebuilds/2.14/win64/nasm-2.14-win64.zip';
-  NASMFPCURL=BINUTILSURL + '/trunk/install/crossbinmsdos/nasm.exe';
+  NASMFPCURL=FPCBINARIES+'/install/crossbinmsdos/nasm.exe';
 
   GITREPO='https://github.com/LongDirtyAnimAlf';
   FPCUPGITREPO=GITREPO+'/fpcupdeluxe';
 
   BOOTSTRAPPERVERSION='bootstrappers_v1.0';
   FPCUPGITREPOBOOTSTRAPPER=FPCUPGITREPO+'/releases/download/'+BOOTSTRAPPERVERSION;
-  FPCUPGITREPOAPI='https://api.github.com/repos/LongDirtyAnimAlf/fpcupdeluxe/releases';
-  FPCUPGITREPOBOOTSTRAPPERAPI=FPCUPGITREPOAPI+'/tags/'+BOOTSTRAPPERVERSION;
+  FPCUPGITREPOAPI='https://api.github.com/repos/LongDirtyAnimAlf/fpcupdeluxe';
+  FPCUPGITREPOAPIRELEASES=FPCUPGITREPOAPI+'/releases';
+  FPCUPGITREPOBOOTSTRAPPERAPI=FPCUPGITREPOAPIRELEASES+'/tags/'+BOOTSTRAPPERVERSION;
 
   SOURCEPATCHES='patches_v1.0';
-  FPCUPGITREPOSOURCEPATCHESAPI=FPCUPGITREPOAPI+'/tags/'+SOURCEPATCHES;
-
-  FPCUPPRIVATEGITREPO='https://www.consulab.nl/git/Alfred/FPCbootstrappers/raw/master';
+  FPCUPGITREPOSOURCEPATCHESAPI=FPCUPGITREPOAPIRELEASES+'/tags/'+SOURCEPATCHES;
 
   FPCUP_ACKNOWLEDGE='acknowledgement_fpcup.txt';
 
@@ -150,20 +149,22 @@ const
   {$endif}
 
   {$ifdef win64}
-  OpenSSLSourceURL : array [0..3] of string = (
+  OpenSSLSourceURL : array [0..4] of string = (
     //'https://indy.fulgan.com/SSL/openssl-1.0.2u-x64_86-win64.zip',
     'https://github.com/IndySockets/OpenSSL-Binaries/raw/master/openssl-1.0.2u-x64_86-win64.zip',
     'http://wiki.overbyte.eu/arch/openssl-1.0.2u-win64.zip',
     'http://www.magsys.co.uk/download/software/openssl-1.0.2o-win64.zip',
+    'https://indy.fulgan.com/SSL/openssl-1.0.2u-x64_86-win64.zip',
     'https://indy.fulgan.com/SSL/Archive/openssl-1.0.2p-x64_86-win64.zip'
     );
   {$endif}
   {$ifdef win32}
-  OpenSSLSourceURL : array [0..3] of string = (
+  OpenSSLSourceURL : array [0..4] of string = (
     //'https://indy.fulgan.com/SSL/openssl-1.0.2u-i386-win32.zip',
     'https://github.com/IndySockets/OpenSSL-Binaries/raw/master/openssl-1.0.2u-i386-win32.zip',
     'http://wiki.overbyte.eu/arch/openssl-1.0.2u-win32.zip',
     'http://www.magsys.co.uk/download/software/openssl-1.0.2o-win32.zip',
+    'https://indy.fulgan.com/SSL/openssl-1.0.2u-i386-win32.zip',
     'https://indy.fulgan.com/SSL/Archive/openssl-1.0.2p-i386-win32.zip'
     );
   {$endif}
@@ -183,6 +184,18 @@ const
   FPCHASHMAGIC   = 'FPC new GIT hash: ';
   LAZHASHMAGIC   = 'Lazarus new GIT hash: ';
 
+  FPCURLLOOKUPMAGIC            = 'fpcURL';
+  FPCTAGLOOKUPMAGIC            = 'fpcTAG';
+  FPCBRANCHLOOKUPMAGIC         = 'fpcBRANCH';
+
+  LAZARUSURLLOOKUPMAGIC        = 'lazURL';
+  LAZARUSTAGLOOKUPMAGIC        = 'lazTAG';
+  LAZARUSBRANCHLOOKUPMAGIC     = 'lazBRANCH';
+
+  GITLABEXTENSION              = '.gitlab';
+
+  DIFFMAGIC                    = 'revhash_';
+
   //Sequence contants for statemachine
 
   _SEP                     = ';';
@@ -190,6 +203,9 @@ const
   _FPC                     = 'FPC';
   _LAZARUS                 = 'Lazarus';
   _LAZARUSSIMPLE           = _LAZARUS+'Simple';
+
+  _REVISIONFPC             = 'Revision'+_FPC;
+  _REVISIONLAZARUS         = 'Revision'+_LAZARUS;
 
   _MAKEFILECHECK           = 'MakefileCheck';
   _MAKEFILECHECKFPC        = _MAKEFILECHECK+_FPC;
@@ -312,23 +328,29 @@ type
 
   TInstaller = class(TObject)
   private
-    FURL                   : string;
-    FUltibo                : boolean;
-    FKeepLocalChanges      : boolean;
-    FReApplyLocalChanges   : boolean;
-    FCrossInstaller        : TCrossInstaller;
-    FCrossCPU_Target       : TCPU; //When cross-compiling: CPU, e.g. x86_64
-    FCrossOS_Target        : TOS; //When cross-compiling: OS, e.g. win64
-    FCrossOS_SubArch       : TSUBARCH; //When cross-compiling for embedded: CPU, e.g. for Teensy SUBARCH=ARMV7EM
-    FCrossOS_ABI           : TABI; //When cross-compiling for arm: hardfloat or softfloat calling convention
-    FCrossToolsDirectory   : string;
-    FCrossLibraryDirectory : string;
+    FURL                       : string;
+    FTAG                       : string;
+    FUltibo                    : boolean;
+    FKeepLocalChanges          : boolean;
+    FReApplyLocalChanges       : boolean;
+    FCrossInstaller            : TCrossInstaller;
+    FCrossCPU_Target           : TCPU; //When cross-compiling: CPU, e.g. x86_64
+    FCrossOS_Target            : TOS; //When cross-compiling: OS, e.g. win64
+    FCrossOS_SubArch           : TSUBARCH; //When cross-compiling for embedded: CPU, e.g. for Teensy SUBARCH=ARMV7EM
+    FCrossOS_ABI               : TABI; //When cross-compiling for arm: hardfloat or softfloat calling convention
+    FCrossToolsDirectory       : string;
+    FCrossLibraryDirectory     : string;
+    FBaseDirectory             : string; //Base directory for fpc(laz)up(deluxe) install itself
+    FSourceDirectory           : string; //Top source directory for a product (FPC, Lazarus)
+    FInstallDirectory          : string; //Top install directory for a product (FPC, Lazarus)
     procedure SetURL(value:string);
     procedure SetSourceDirectory(value:string);
     procedure SetBaseDirectory(value:string);
     procedure SetInstallDirectory(value:string);
     procedure SetFPCInstallDirectory(value:string);
     procedure SetFPCSourceDirectory(value:string);
+    procedure SetLazarusInstallDirectory(value:string);
+    procedure SetLazarusSourceDirectory(value:string);
     function GetShell: string;
     function GetMake: string;
     procedure SetVerbosity(aValue:boolean);
@@ -346,17 +368,18 @@ type
     function GetInstallerClass(aClassToFind:TClass):boolean;
     function IsFPCInstaller:boolean;
     function IsLazarusInstaller:boolean;
+    function IshelpInstaller:boolean;
     function IsUniversalInstaller:boolean;
   protected
+    FFPCInstallDir             : string;
+    FFPCSourceDir              : string;
+    FLazarusInstallDir         : string;
+    FLazarusSourceDir          : string;
+    FLazarusPrimaryConfigPath  : string;
+    FTempDirectory             : string; //For storing temp files and logs
     FCleanModuleSuccess: boolean;
     FNeededExecutablesChecked: boolean;
     FFPCCompilerBinPath: string; //path where compiler lives
-    FBaseDirectory: string; //Base directory for fpc(laz)up(deluxe) install itself
-    FSourceDirectory: string; //Top source directory for a product (FPC, Lazarus)
-    FInstallDirectory: string; //Top install directory for a product (FPC, Lazarus)
-    FFPCInstallDir: string;
-    FFPCSourceDir: string;
-    FTempDirectory: string; //For storing temp files and logs
     FCompiler: string; // Compiler executable
     FCompilerOptions: string; //options passed when compiling (FPC or Lazarus currently)
     FCPUCount: integer; //logical cpu count (i.e. hyperthreading=2cpus)
@@ -364,8 +387,7 @@ type
     FPreviousRevision: string;
     FDesiredRevision: string;
     FActualRevision: string;
-    FDesiredBranch: string;
-    FDesiredTag: string;
+    FBranch: string;
     // Stores tprocessex exception info:
     FErrorLog: TStringList;
     FHTTPProxyHost: string;
@@ -381,9 +403,10 @@ type
     FGitClient: TGitClient;
     FHGClient: THGClient;
     FSVNClient: TSVNClient;
-    FSVNDirectory: string;
     FRepositoryUpdated: boolean;
     FSourcePatches: string;
+    FPreInstallScriptPath: string;
+    FPostInstallScriptPath: string;
     FMajorVersion: integer; //major part of the version number, e.g. 1 for 1.0.8, or -1 if unknown
     FMinorVersion: integer; //minor part of the version number, e.g. 0 for 1.0.8, or -1 if unknown
     FReleaseVersion: integer; //release part of the version number, e.g. 8 for 1.0.8, or -1 if unknown
@@ -425,7 +448,6 @@ type
     // Checkout/update using SVN; use FSourceDirectory as local repository
     // Any generated warnings will be added to UpdateWarnings
     function DownloadFromSVN(aModuleName: string; var aBeforeRevision, aAfterRevision: string; UpdateWarnings: TStringList): boolean;
-    function SimpleExportFromSVN(ModuleName: string; aFileURL,aLocalPath:string): boolean;
     function DownloadFromURL(ModuleName: string): boolean;
     // Clone/update using Git; use FSourceDirectory as local repository
     // Any generated warnings will be added to UpdateWarnings
@@ -454,9 +476,9 @@ type
     function GetFile(aURL,aFile:string; forceoverwrite:boolean=false; forcenative:boolean=false):boolean;
     function GetSanityCheck:boolean;
 
-    function GetVersionFromSource({%H-}aSourcePath:string):string;virtual;
+    function GetVersionFromSource:string;virtual;
     function GetVersionFromURL({%H-}aUrl:string):string;virtual;
-    function GetReleaseCandidateFromSource({%H-}aSourcePath:string):integer;virtual;
+    function GetReleaseCandidateFromSource:integer;virtual;
     function GetVersion:string;
 
   public
@@ -469,16 +491,22 @@ type
     property Processor: TExternalTool read FExternalTool;
     property ProcessorResult: integer read FExternalToolResult write FExternalToolResult;
     // Source directory for installation (fpcdir, lazdir,... option)
-    property SourceDirectory: string write SetSourceDirectory;
+    property SourceDirectory: string read FSourceDirectory write SetSourceDirectory;
     //Base directory for fpc(laz)up(deluxe) itself
-    property BaseDirectory: string write SetBaseDirectory;
+    property BaseDirectory: string  read FBaseDirectory write SetBaseDirectory;
     // Final install directory
-    property InstallDirectory: string write SetInstallDirectory;
+    property InstallDirectory: string read FInstallDirectory write SetInstallDirectory;
     //Base directory for fpc(laz)up(deluxe) itself
     // FPC install directory
     property FPCInstallDir: string write SetFPCInstallDirectory;
     // FPC source directory
     property FPCSourceDir: string write SetFPCSourceDirectory;
+    // Lazarus install directory
+    property LazarusInstallDir: string write SetLazarusInstallDirectory;
+    // Lazarus source directory
+    property LazarusSourceDir: string write SetLazarusSourceDirectory;
+    // Lazarus primary config path
+    property LazarusPrimaryConfigPath:string write FLazarusPrimaryConfigPath;
     property TempDirectory: string write FTempDirectory;
     // Compiler to use for building. Specify empty string when using bootstrap compiler.
     property Compiler: string {read GetCompiler} write FCompiler;
@@ -496,8 +524,7 @@ type
     property PreviousRevision: string read FPreviousRevision;
     property DesiredRevision: string write FDesiredRevision;
     property ActualRevision: string read FActualRevision;
-    property DesiredBranch: string write FDesiredBranch;
-    property DesiredTag: string write FDesiredTag;
+    property Branch: string write FBranch;
     // If using HTTP proxy: host
     property HTTPProxyHost: string read FHTTPProxyHost write SetHTTPProxyHost;
     // If using HTTP proxy: port (optional, default 8080)
@@ -508,6 +535,8 @@ type
     property HTTPProxyPassword: string read FHTTPProxyPassword write SetHTTPProxyPassword;
     // Whether or not to let locally modified files remain or back them up to .diff and svn revert before compiling
     property KeepLocalChanges: boolean write FKeepLocalChanges;
+    // Whether or not to back up locale changes to .diff and reapply them before compiling
+    property ReApplyLocalChanges: boolean write FReApplyLocalChanges;
     // auto switchover SVN URL
     property SwitchURL: boolean write FSwitchURL;
     // do we have OpenIndiana instead of plain Solaris
@@ -521,12 +550,13 @@ type
     property MakeDirectory: string write FMakeDir;
     // Patch utility to use. Defaults to 'patch'
     property PatchCmd:string write FPatchCmd;
-    // Whether or not to back up locale changes to .diff and reapply them before compiling
-    property ReApplyLocalChanges: boolean write FReApplyLocalChanges;
-    // URL for download. HTTP, ftp or svn
+    // URL for download. HTTP, ftp or svn or git or hg
     property URL: string read FURL write SetURL;
+    property TAG: string read FURL write FTAG;
     // patches
     property SourcePatches: string write FSourcePatches;
+    property PreInstallScriptPath: string write FPreInstallScriptPath;
+    property PostInstallScriptPath: string write FPostInstallScriptPath;
     // do not download the repo itself, but only get the files (of master)
     property ExportOnly: boolean write FExportOnly;
     property NoJobs: boolean write FNoJobs;
@@ -600,14 +630,14 @@ type
 implementation
 
 uses
+  StrUtils,
   {$ifdef LCL}
   //For messaging to MainForm: no writeln
   Forms,
   //LMessages,
   LCLIntf,
   {$endif}
-  process,
-  RegExpr
+  process
   {$IFDEF UNIX}
   ,LazFileUtils
   {$ENDIF UNIX}
@@ -638,22 +668,22 @@ begin
   begin
     if (NOT Assigned(FCrossInstaller)) OR ((FCrossInstaller.TargetCPU<>FCrossCPU_Target)  OR (FCrossInstaller.TargetOS<>FCrossOS_Target)) then
     begin
-  target := GetFPCTarget(false);
-    FCrossInstaller:=nil;
-    if assigned(CrossInstallers) then
-      for idx := 0 to Pred(CrossInstallers.Count) do
-        if CrossInstallers[idx] = target then
-        begin
-          FCrossInstaller:=TCrossInstaller(CrossInstallers.Objects[idx]);
-          break;
-        end;
-  end;
-  if (NOT Assigned(FCrossInstaller)) then
-  begin
-    Infoln(localinfotext+'Could not find crosscompiler logic for '+target+' !!',etError);
-    Infoln(localinfotext+'This is a fatal error. Exception will be created.',etError);
-    Infoln(localinfotext+'Please file a bug-report.',etError);
-    raise Exception.CreateFmt('%s fpcup cross-logic not found. Please report this issue.',[target]);
+      target := GetFPCTarget(false);
+      FCrossInstaller:=nil;
+      if assigned(CrossInstallers) then
+        for idx := 0 to Pred(CrossInstallers.Count) do
+          if CrossInstallers[idx] = target then
+          begin
+            FCrossInstaller:=TCrossInstaller(CrossInstallers.Objects[idx]);
+            break;
+          end;
+    end;
+    if (NOT Assigned(FCrossInstaller)) then
+    begin
+      Infoln(localinfotext+'Could not find crosscompiler logic for '+target+' !!',etError);
+      Infoln(localinfotext+'This is a fatal error. Exception will be created.',etError);
+      Infoln(localinfotext+'Please file a bug-report.',etError);
+      raise Exception.CreateFmt('%s fpcup cross-logic not found. Please report this issue.',[target]);
     end
     else
     begin
@@ -828,6 +858,19 @@ begin
     SetSourceDirectory(value);
 end;
 
+procedure TInstaller.SetLazarusInstallDirectory(value:string);
+begin
+  FLazarusInstallDir:=value;
+  if ((IsLazarusInstaller) OR (IsHelpInstaller)) then
+    SetInstallDirectory(value);
+end;
+
+procedure TInstaller.SetLazarusSourceDirectory(value:string);
+begin
+  FLazarusSourceDir:=value;
+  if ((IsLazarusInstaller) OR (IsHelpInstaller)) then
+    SetSourceDirectory(value);
+end;
 
 function TInstaller.GetMake: string;
 const
@@ -933,7 +976,7 @@ function TInstaller.CheckAndGetTools: boolean;
 var
   OperationSucceeded: boolean;
   {$ifdef MSWINDOWS}
-  aURL,aLocalClientBinary,Output: string;
+  aURL,aFile,Output: string;
   {$endif}
 begin
   localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (CheckAndGetTools): ';
@@ -983,12 +1026,6 @@ begin
     {$IFDEF MSWINDOWS}
     ForceDirectoriesSafe(FMakeDir);
 
-    (*
-    // check if we have make ... otherwise get it from standard URL
-    GetFile(BINUTILSURL+'/tags/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+
-            '/install/binw'+{$ifdef win64}'64'{$else}'32'{$endif}+'/'+ExtractFileName(Make),Make);
-    *)
-
     {$ifdef win64}
     // the standard make by FPC does not work when Git is present (and in the path), but this one works ??!!
     // (but the FPC installer sets its own path to isolate itself from the system, so FPC make still works)
@@ -1002,22 +1039,26 @@ begin
       // always get ssl libs if they are not there: sometimes system wide libs do not work
       if (NOT FileExists(SafeGetApplicationPath+'libeay32.dll')) OR (NOT FileExists(SafeGetApplicationPath+'ssleay32.dll')) then
       begin
-        Infoln(localinfotext+'Getting OpenSLL library files.',etInfo);
+        Infoln(localinfotext+'Getting OpenSSL library files.',etInfo);
         DownloadOpenSSL;
         DestroySSLInterface; // disable ssl and release libs
       end
       else
       begin
-        Infoln(localinfotext+'Found OpenSLL library files.',etDebug);
+        Infoln(localinfotext+'Found OpenSSL library files.',etDebug);
         Infoln(localinfotext+'Checking for correct signature.',etDebug);
+        if (IsSSLloaded) then
+        begin
+          DestroySSLInterface; // disable ssl and release libs
+        end;
         if (NOT CheckFileSignature(SafeGetApplicationPath+'libeay32.dll')) OR (NOT CheckFileSignature(SafeGetApplicationPath+'ssleay32.dll')) then
         begin
-          Infoln(localinfotext+'OpenSLL library files have wrong CPU signature.',etWarning);
+          Infoln(localinfotext+'OpenSSL library files have wrong CPU signature.',etWarning);
           DeleteFile(SafeGetApplicationPath+'libeay32.dll');
           DeleteFile(SafeGetApplicationPath+'ssleay32.dll');
-          Infoln(localinfotext+'Getting correct OpenSLL library files.',etInfo);
+          Infoln(localinfotext+'Getting correct OpenSSL library files.',etInfo);
           DownloadOpenSSL;
-          DestroySSLInterface; // disable ssl and release libs
+          //DestroySSLInterface; // disable ssl and release libs
         end;
       end;
       if (NOT IsSSLloaded) then
@@ -1034,15 +1075,11 @@ begin
     begin
       OperationSucceeded:=False;
       // try to find systemwide SVN
-      {$IFDEF MSWINDOWS}
       if (NOT ForceLocal) then
-      {$ENDIF MSWINDOWS}
       begin
         OperationSucceeded:=ValidClient;
       end;
-      {$IFDEF MSWINDOWS}
       // try to find fpcupdeluxe SVN
-      FSVNDirectory := IncludeTrailingPathDelimiter(FMakeDir)+'svn';
       if (NOT OperationSucceeded) then
         OperationSucceeded:=FindSVNSubDirs;
       if (NOT OperationSucceeded) then
@@ -1052,12 +1089,12 @@ begin
         // and set FSVNClient.SVNExecutable if succesful
         OperationSucceeded:=DownloadSVN;
       end;
-      {$ENDIF MSWINDOWS}
-      if OperationSucceeded then
+      if (OperationSucceeded AND (RepoExecutable<>EmptyStr)) then
       begin
-        if (RepoExecutable<>EmptyStr) then OperationSucceeded := CheckExecutable(RepoExecutable, ['--version'], '');
-        if OperationSucceeded then FSVNDirectory:=ExtractFileDir(RepoExecutable);
+        OperationSucceeded:=CheckExecutable(RepoExecutable, ['--version'], '');
       end;
+      // do not fail: SVN is not essential anymore !
+      OperationSucceeded:=True;
     end;
 
     // Regardless of platform, SVN should now be either set up correctly or we should give up.
@@ -1083,25 +1120,28 @@ begin
     {$endif}
 
     // Get patch binary from default binutils URL
-    aURL:=BINUTILSURL+'/tags/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw32/';
-
     OperationSucceeded:=false;
-    aLocalClientBinary:=FPatchCmd;
-    if Not FileExists(aLocalClientBinary) then
-      aLocalClientBinary:=IncludeTrailingPathDelimiter(FMakeDir) + FPatchCmd;
-    if Not FileExists(aLocalClientBinary) then
+    aFile:=ExtractFilePathSafe(FPatchCmd);
+    if (Not FileExists(aFile)) then
+      aFile:=Which(aFile);
+    if (Not FileExists(aFile)) then
+      aFile:=IncludeTrailingPathDelimiter(FMakeDir) + FPatchCmd;
+    if (Not FileExists(aFile)) then
     begin
-      if SVNClient.ValidClient then
-        OperationSucceeded:=SimpleExportFromSVN('CheckAndGetTools',aURL+'patch.exe',ExcludeTrailingPathDelimiter(FMakeDir));
-      if (NOT OperationSucceeded) then
-        OperationSucceeded:=GetFile(aURL+'patch.exe',IncludeTrailingPathDelimiter(FMakeDir) + 'patch.exe');
-
-      OperationSucceeded:=false;
-      if SVNClient.ValidClient then
-        OperationSucceeded:=SimpleExportFromSVN('CheckAndGetTools',aURL+'patch.exe.manifest',ExcludeTrailingPathDelimiter(FMakeDir));
-      if (NOT OperationSucceeded) then
-        OperationSucceeded:=GetFile(aURL+'patch.exe.manifest',IncludeTrailingPathDelimiter(FMakeDir) + 'patch.exe.manifest');
+      aFile:=IncludeTrailingPathDelimiter(FMakeDir) + 'patch.exe';
+      //aURL:=FPCBINARIES+'/install/binw32/';
+      aURL:=FPCGITLABBINARIES+'/-/raw/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw32/';
+      GetFile(aURL+'patch.exe',aFile);
+      GetFile(aURL+'patch.exe.manifest',aFile + '.manifest');
     end;
+    if FileExists(aFile) then FPatchCmd:=aFile;
+
+
+    // Get pwd binary from default binutils URL. If its not there, the make clean command will fail
+    //aURL:=FPCBINARIES+'/install/binw'+{$ifdef win64}'64'{$else}'32'{$endif}+'/';
+    aURL:=FPCGITLABBINARIES+'/-/raw/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw'+{$ifdef win64}'64'{$else}'32'{$endif}+'/';
+    aFile:='pwd.exe';
+    GetFile(aURL+aFile,IncludeTrailingPathDelimiter(FMakeDir)+aFile);
 
     // do not fail
     OperationSucceeded:=True;
@@ -1115,7 +1155,7 @@ begin
       // this version of 7Zip is the last version that does not need installation ... so we can silently get it !!
       Output:='7za920.zip';
       SysUtils.DeleteFile(IncludeTrailingPathDelimiter(FMakeDir)+'7Zip\'+Output);
-      aURL:='https://downloads.sourceforge.net/project/sevenzip/7-Zip/9.20/';
+      aURL:=FPCUPGITREPO+'/releases/download/windowsi386bins_v1.0/';
       OperationSucceeded:=GetFile(aURL+Output,IncludeTrailingPathDelimiter(FMakeDir)+'7Zip\'+Output);
       if OperationSucceeded then
       begin
@@ -1126,12 +1166,11 @@ begin
           OperationSucceeded:=false;
         end;
       end;
-      //OperationSucceeded:=GetFile('https://freefr.dl.sourceforge.net/project/sevenzip/7-Zip/9.20/'+Output,IncludeTrailingPathDelimiter(FMakeDir)+'7Zip\'+Output);
       if NOT OperationSucceeded then
       begin
         // try another URL
         SysUtils.DeleteFile(IncludeTrailingPathDelimiter(FMakeDir)+'7Zip\'+Output);
-        aURL:='https://osdn.net/frs/redir.php?m=acc&f=sevenzip%2F64455%2F';
+        aURL:='https://downloads.sourceforge.net/project/sevenzip/7-Zip/9.20/';
         OperationSucceeded:=GetFile(aURL+Output,IncludeTrailingPathDelimiter(FMakeDir)+'7Zip\'+Output);
       end;
       if NOT OperationSucceeded then
@@ -1164,7 +1203,7 @@ begin
 
     if (NOT Ultibo) then
     begin
-      //Unrar HG and GIT not needed for Ultibo
+      //Unrar, HG and GIT not needed for Ultibo
 
       FUnrar := IncludeTrailingPathDelimiter(FMakeDir) + 'unrar\bin\unrar.exe';
       if Not FileExists(FUnrar) then
@@ -1174,7 +1213,7 @@ begin
         // this version of unrar does not need installation ... so we can silently get it !!
         Output:='unrar-3.4.3-bin.zip';
         SysUtils.DeleteFile(IncludeTrailingPathDelimiter(FMakeDir)+'unrar\'+Output);
-        aURL:='https://downloads.sourceforge.net/project/gnuwin32/unrar/3.4.3/';
+        aURL:=FPCUPGITREPO+'/releases/download/windowsi386bins_v1.0/';
         OperationSucceeded:=GetFile(aURL+Output,IncludeTrailingPathDelimiter(FMakeDir)+'unrar\'+Output);
         // sometimes, souceforge has a redirect error, returning a successfull download, but without the datafile itself
         if (FileSize(IncludeTrailingPathDelimiter(FMakeDir)+'unrar\'+Output)<50000) then
@@ -1221,7 +1260,7 @@ begin
       with GitClient do
       begin
         OperationSucceeded:=False;
-        aLocalClientBinary:=IncludeTrailingPathDelimiter(FMakeDir)+'git'+DirectorySeparator+'cmd'+DirectorySeparator+RepoExecutableName+GetExeExt;
+        aFile:=IncludeTrailingPathDelimiter(FMakeDir)+'git'+DirectorySeparator+'cmd'+DirectorySeparator+RepoExecutableName+GetExeExt;
         // try to find systemwide GIT
         if (NOT ForceLocal) then
         begin
@@ -1230,8 +1269,8 @@ begin
         // try to find fpcupdeluxe GIT
         if (NOT OperationSucceeded) then
         begin
-          OperationSucceeded:=FileExists(aLocalClientBinary);
-          if OperationSucceeded then RepoExecutable:=aLocalClientBinary;
+          OperationSucceeded:=FileExists(aFile);
+          if OperationSucceeded then RepoExecutable:=aFile;
         end;
         if (NOT OperationSucceeded) then
         begin
@@ -1249,9 +1288,10 @@ begin
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.19.0.windows.1/MinGit-2.19.0-32-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.21.0.windows.1/MinGit-2.21.0-32-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-32-bit.zip';
-            aURL:='https://github.com/git-for-windows/git/releases/download/v2.23.0.windows.1/MinGit-2.23.0-32-bit.zip';
+            //aURL:='https://github.com/git-for-windows/git/releases/download/v2.23.0.windows.1/MinGit-2.23.0-32-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.24.1.windows.2/MinGit-2.24.1.2-32-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.25.1.windows.1/MinGit-2.25.1-32-bit.zip';
+            aURL:='https://github.com/git-for-windows/git/releases/download/v2.33.0.windows.2/MinGit-2.33.0.2-32-bit.zip';
             {$else}
             //Output:='git64.7z';
             Output:='git64.zip';
@@ -1260,11 +1300,11 @@ begin
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.19.0.windows.1/MinGit-2.19.0-64-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.21.0.windows.1/MinGit-2.21.0-64-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.22.0.windows.1/MinGit-2.22.0-64-bit.zip';
-            aURL:='https://github.com/git-for-windows/git/releases/download/v2.23.0.windows.1/MinGit-2.23.0-64-bit.zip';
+            //aURL:='https://github.com/git-for-windows/git/releases/download/v2.23.0.windows.1/MinGit-2.23.0-64-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.24.1.windows.2/MinGit-2.24.1.2-64-bit.zip';
             //aURL:='https://github.com/git-for-windows/git/releases/download/v2.25.1.windows.1/MinGit-2.25.1-64-bit.zip';
+            aURL:='https://github.com/git-for-windows/git/releases/download/v2.33.0.windows.2/MinGit-2.33.0.2-64-bit.zip';
             {$endif}
-            //aURL:=FPCUPGITREPO+'/releases/download/Git-2.13.2/'+Output;
             Infoln(localinfotext+'GIT not found. Downloading it (may take time) from '+aURL,etInfo);
             OperationSucceeded:=GetFile(aURL,IncludeTrailingPathDelimiter(FMakeDir)+'git\'+Output);
             if NOT OperationSucceeded then
@@ -1287,28 +1327,26 @@ begin
               if OperationSucceeded then
               begin
                 SysUtils.DeleteFile(IncludeTrailingPathDelimiter(FMakeDir)+'git\'+Output);
-                OperationSucceeded:=FileExists(aLocalClientBinary);
+                OperationSucceeded:=FileExists(aFile);
                 //Copy certificate ... might be necessary
                 //aURL:=IncludeTrailingPathDelimiter(FMakeDir)+'git\mingw32\';
                 //if (NOT FileExists(aURL+'bin\curl-ca-bundle.crt')) then FileUtil.CopyFile(aURL+'ssl\certs\ca-bundle.crt',aURL+'bin\curl-ca-bundle.crt');
               end;
             end;
-            if OperationSucceeded then RepoExecutable:=aLocalClientBinary else RepoExecutable:=RepoExecutableName+GetExeExt;
+            if OperationSucceeded then RepoExecutable:=aFile else RepoExecutable:=RepoExecutableName+GetExeExt;
           end;
         end;
-        if RepoExecutable <> EmptyStr then
+        if (OperationSucceeded AND (RepoExecutable<>EmptyStr)) then
         begin
-          // check exe, but do not fail: GIT is not 100% essential !
-          CheckExecutable(RepoExecutable, ['--version'], '');
+          // check exe
+          OperationSucceeded:=CheckExecutable(RepoExecutable, ['--version'], '');
         end;
-        // do not fail: GIT is not 100% essential !
-        OperationSucceeded:=True;
       end;
 
       with HGClient do
       begin
         OperationSucceeded:=False;
-        aLocalClientBinary:=IncludeTrailingPathDelimiter(FMakeDir)+'hg'+DirectorySeparator+RepoExecutableName+GetExeExt;
+        aFile:=IncludeTrailingPathDelimiter(FMakeDir)+'hg'+DirectorySeparator+RepoExecutableName+GetExeExt;
         // try to find systemwide HG
         if (NOT ForceLocal) then
         begin
@@ -1317,18 +1355,19 @@ begin
         // try to find fpcupdeluxe HG
         if (NOT OperationSucceeded) then
         begin
-          OperationSucceeded:=FileExists(aLocalClientBinary);
-          if OperationSucceeded then RepoExecutable:=aLocalClientBinary;
+          OperationSucceeded:=FileExists(aFile);
+          if OperationSucceeded then RepoExecutable:=aFile;
         end;
         if (NOT OperationSucceeded) then
         begin
           //original source from : https://www.mercurial-scm.org/
           {$ifdef win32}
           Output:='hg32.zip';
+          aURL:=FPCUPGITREPO+'/releases/download/windowsi386bins_v1.0/'+Output;
           {$else}
           Output:='hg64.zip';
+          aURL:=FPCUPGITREPO+'/releases/download/windowsx64bins_v1.0/'+Output;
           {$endif}
-          aURL:=FPCUPGITREPO+'/releases/download/HG-4.7/'+Output;
           ForceDirectoriesSafe(IncludeTrailingPathDelimiter(FMakeDir)+'hg');
           Infoln(localinfotext+'HG (mercurial) client not found. Downloading it (may take time) from '+aURL,etInfo);
           OperationSucceeded:=GetFile(aURL,IncludeTrailingPathDelimiter(FMakeDir)+'hg\'+Output);
@@ -1351,11 +1390,11 @@ begin
             end;
             if OperationSucceeded then
             begin
-              OperationSucceeded:=FileExists(aLocalClientBinary);
+              OperationSucceeded:=FileExists(aFile);
             end;
           end;
           SysUtils.DeleteFile(IncludeTrailingPathDelimiter(FMakeDir)+'hg\'+Output);
-          if OperationSucceeded then RepoExecutable:=aLocalClientBinary else RepoExecutable:=RepoExecutableName+GetExeExt;
+          if OperationSucceeded then RepoExecutable:=aFile else RepoExecutable:=RepoExecutableName+GetExeExt;
         end;
         if RepoExecutable <> EmptyStr then
         begin
@@ -1421,13 +1460,23 @@ begin
       end;
     end;
 
-    {$IFNDEF MSWINDOWS}
     if OperationSucceeded then
     begin
+    {$IFDEF MSWINDOWS}
+      // check if we have make ... otherwise get it from standard URL
+      if (NOT FileExists(Make)) then
+      begin
+        aURL:=FPCGITLABBINARIES+'/-/raw/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw'+{$ifdef win64}'64'{$else}'32'{$endif}+'/'+ExtractFileName(Make);
+        //aURL:=FPCBINARIES+'/install/binw'+{$ifdef win64}'64'{$else}'32'{$endif}+'/'+ExtractFileName(Make);
+        Infoln(localinfotext+'Make binary not found. Getting it from: '+aURL+'.',etInfo);
+        GetFile(aURL,Make);
+        OperationSucceeded:=FileExists(Make);
+      end;
+    {$ELSE}
       OperationSucceeded := CheckExecutable(Make, ['-v'], '');
       if (NOT OperationSucceeded) then Infoln(localinfotext+Make+' not found.',etError);
-    end;
     {$ENDIF}
+    end;
 
     FNeededExecutablesChecked:=OperationSucceeded;
   end;
@@ -1477,6 +1526,11 @@ begin
             AllThere:=false;
             break;
           end;
+          if (FileSize(InstallPath+FUtilFiles[i].FileName)=0) then
+          begin
+            AllThere:=false;
+            break;
+          end;
         end;
       end;
     end;
@@ -1491,17 +1545,6 @@ begin
 
   if OperationSucceeded then
   begin
-
-    {$IFDEF MSWINDOWS}
-    // check if we have make ... otherwise get it from standard URL
-    if (NOT FileExists(Make)) then
-    begin
-      s1:=BINUTILSURL+'/tags/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw'+{$ifdef win64}'64'{$else}'32'{$endif}+'/'+ExtractFileName(Make);
-      Infoln(s2+'Make binary not found. Getting it from: '+s1+'.',etInfo);
-      GetFile(s1,Make);
-      OperationSucceeded:=FileExists(Make);
-    end;
-    {$ENDIF MSWINDOWS}
 
     // Check for proper make executable
     if OperationSucceeded then
@@ -1549,8 +1592,6 @@ const
   SourceURL64_gdb_default = LAZARUSBINARIES+'/x86_64-win64/gdb/bin/';
   SourceURL_QT = LAZARUSBINARIES+'/i386-win32/qt/';
   SourceURL_QT5 = LAZARUSBINARIES+'/i386-win32/qt5/';
-  //SourceURL_gdb = FPCUPGITREPO+'/releases/download/gdb/';
-  //SourceURL64_gdb = FPCUPGITREPO+'/releases/download/gdb/';
 {$endif}
   procedure AddNewUtil(FileName, RootURL, OS: string; Category: TUtilCategory);
   var
@@ -1569,31 +1610,16 @@ var
   {$ifdef win64}
   aSourceURL64:string;
   {$endif}
-  aTag:string;
 {$endif}
 begin
   SetLength(FUtilFiles,0); //clean out any cruft
 
   {$ifdef MSWINDOWS}
-
-  // default
-  if aVersion='' then aVersion:=DEFAULTFPCVERSION;
-
-  // if Win Vista or higher: use modern (2.4.0 and higher) binutils
-  if CheckWin32Version(6,0) then
-  begin
-    if (CalculateNumericalVersion(aVersion)<CalculateFullVersion(2,4,0)) then
-       aVersion:='2.4.0';
-  end;
-
-  //trunk is special
-  if aVersion=FPCTRUNKVERSION
-     then aTag:='trunk'
-     else aTag:='tags/release_'+StringReplace(aVersion,'.','_',[rfReplaceAll]);
-
-  aSourceURL:=BINUTILSURL+'/'+aTag+'/install/binw32/';
+  //aSourceURL:=FPCBINARIES+'/install/binw32/';
+  aSourceURL:=FPCGITLABBINARIES+'/-/raw/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw32/';
   {$ifdef win64}
-  aSourceURL64:=BINUTILSURL+'/'+aTag+'/install/binw64/';
+  //aSourceURL64:=FPCBINARIES+'/install/binw64/';
+  aSourceURL64:=FPCGITLABBINARIES+'/-/raw/release_'+StringReplace(DEFAULTFPCVERSION,'.','_',[rfReplaceAll])+'/install/binw64/';
   {$endif}
 
   // Common to both 32 and 64 bit windows (i.e. 32 bit files)
@@ -1613,7 +1639,7 @@ begin
   // add win32/64 gdb from lazarus
   AddNewUtil('gdb' + GetExeExt,SourceURL_gdb_default,'',ucDebugger32);
   AddNewUtil('gdb' + GetExeExt,SourceURL64_gdb_default,'',ucDebugger64);
-  AddNewUtil('libiconv-2.dll',SourceURL64_gdb_default,'',ucDebugger64);
+  //AddNewUtil('libiconv-2.dll',SourceURL64_gdb_default,'',ucDebugger64);
 
   // add win32/64 gdb from fpcup
   //AddNewUtil('i386-win32-gdb.zip',SourceURL_gdb,'',ucDebugger32);
@@ -1662,13 +1688,12 @@ begin
   AddNewUtil('gdate' + GetExeExt,aSourceURL64,'',ucBinutil);
   // just add default 64 bit debugger for all usercases as a binutil !
   AddNewUtil('gdb' + GetExeExt,SourceURL64_gdb_default,'',ucBinutil);
-  AddNewUtil('libiconv-2.dll',SourceURL64_gdb_default,'',ucBinutil);
+  //AddNewUtil('libiconv-2.dll',SourceURL64_gdb_default,'',ucBinutil);
   AddNewUtil('gecho' + GetExeExt,aSourceURL64,'',ucBinutil);
   AddNewUtil('ginstall' + GetExeExt,aSourceURL64,'',ucBinutil);
-  AddNewUtil('ginstall.exe.manifest',aSourceURL64,'',ucBinutil);
+  AddNewUtil('ginstall' + GetExeExt + '.manifest',aSourceURL64,'',ucBinutil);
   AddNewUtil('gmkdir' + GetExeExt,aSourceURL64,'',ucBinutil);
   //AddNewUtil('GoRC' + GetExeExt,aSourceURL64,'',ucBinutil);
-
   AddNewUtil('ld' + GetExeExt,aSourceURL64,'',ucBinutil);
   AddNewUtil('make' + GetExeExt,aSourceURL64,'',ucBinutil);
   AddNewUtil('mv' + GetExeExt,aSourceURL64,'',ucBinutil);
@@ -1718,11 +1743,17 @@ end;
 
 function TInstaller.DownloadFromBase(aClient:TRepoClient; aModuleName: string; var aBeforeRevision,
   aAfterRevision: string; UpdateWarnings: TStringList): boolean;
+const
+  MAXFPCREVISION      = 49000;
+  MAXLAZARUSREVISION  = 65000;
 var
   ReturnCode: integer;
   DiffFile,DiffFileCorrectedPath: String;
   LocalPatchCmd : string;
+  NoPatchStrip:boolean;
   s,Output:string;
+  SVNRevision:integer;
+
 begin
   Result := false;
 
@@ -1748,6 +1779,10 @@ begin
   if ((aModuleName=_FPC) OR (aModuleName=_LAZARUS)) AND (aClient is TGitClient)  then
   begin
     Output:=(aClient as TGitClient).GetSVNRevision;
+    SVNRevision:=StrToIntDef(Output,0);
+    if (SVNRevision=0) then Output:='';
+    if (aModuleName=_FPC) AND (SVNRevision>MAXFPCREVISION) then Output:='';
+    if (aModuleName=_LAZARUS) AND (SVNRevision>MAXLAZARUSREVISION) then Output:='';
     if (Length(Output)>0) then
       aBeforeRevision := Output
     else
@@ -1760,7 +1795,7 @@ begin
 
   if Assigned(UpdateWarnings) then
   begin
-    if aBeforeRevision<>FRET_UNKNOWN_REVISION then
+    if (aBeforeRevision<>FRET_UNKNOWN_REVISION) then
     begin
       aClient.LocalModifications(UpdateWarnings); //Get list of modified files
       if UpdateWarnings.Count > 0 then
@@ -1768,7 +1803,7 @@ begin
         UpdateWarnings.Insert(0, {BeginSnippet+' '+}aModuleName + ': WARNING: found modified files.');
         if FKeepLocalChanges=false then
         begin
-          DiffFile:=IncludeTrailingPathDelimiter(FSourceDirectory) + 'REV' + aBeforeRevision + '.diff';
+          DiffFile:=IncludeTrailingPathDelimiter(FSourceDirectory) + DIFFMAGIC + aBeforeRevision + '.diff';
           CreateStoreRepositoryDiff(DiffFile, UpdateWarnings,aClient);
           UpdateWarnings.Add({BeginSnippet+' '+}aModuleName + ': reverting to original before updating.');
           aClient.Revert; //Remove local changes
@@ -1779,14 +1814,14 @@ begin
   end;
 
   aClient.DesiredRevision := FDesiredRevision; //We want to update to this specific revision
-  aClient.DesiredBranch := FDesiredBranch; //We want to update to this specific branch
-  aClient.DesiredTag := FDesiredTag; //We want to update to this specific branch
+  aClient.DesiredBranch := FBranch; //We want to update to this specific branch
+  aClient.DesiredTag := FTAG; //We want to update to this specific branch
 
   Output:=localinfotext+'Running '+UpperCase(aClient.RepoExecutableName)+' checkout or update';
-  if Length(aClient.DesiredRevision)>0 then
+  if (Length(aClient.DesiredRevision)>0) then
   begin
     Output:=Output+' of revision '+aClient.DesiredRevision;
-    if ((aModuleName=_FPC) OR (aModuleName=_LAZARUS)) AND (aClient is TGitClient)  then
+    if ( ((aModuleName=_FPC) OR (aModuleName=_LAZARUS)) AND (aClient is TGitClient) ) then
     begin
       // A normal (short) githash is 7 or longer
       if (Length(FDesiredRevision)<7) then
@@ -1795,8 +1830,16 @@ begin
         if (Length(s)>0) then
         begin
           Output:=Output+' with GIT hash '+s;
-          aClient.DesiredRevision := s;
+          aClient.DesiredTag := s;
+          aClient.DesiredBranch := '';
+          aClient.DesiredRevision:='';
         end;
+      end
+      else
+      begin
+        aClient.DesiredTag := FDesiredRevision;
+        aClient.DesiredBranch := '';
+        aClient.DesiredRevision:='';
       end;
 
     end;
@@ -1837,14 +1880,29 @@ begin
         if ((aModuleName=_FPC) OR (aModuleName=_LAZARUS)) AND (aClient is TGitClient)  then
         begin
           Output:=(aClient as TGitClient).GetSVNRevision;
+          SVNRevision:=StrToIntDef(Output,0);
+          if (SVNRevision=0) then Output:='';
+          if (aModuleName=_FPC) AND (SVNRevision>MAXFPCREVISION) then Output:='';
+          if (aModuleName=_LAZARUS) AND (SVNRevision>MAXLAZARUSREVISION) then Output:='';
           if (Length(Output)>0) then
           begin
-            aAfterRevision:=Output;
+            if (Length(FDesiredRevision)>0) AND (Length(FDesiredRevision)<7) AND (Output<>FDesiredRevision) then
+            begin
+              aClient.DesiredRevision:=FDesiredRevision;
+              s:=(aClient as TGitClient).GetGitHash;
+              if (Length(s)>0) then
+              begin
+                aClient.DesiredTag := s;
+                aClient.CheckOutOrUpdate;
+              end;
+            end;
+            Output:=(aClient as TGitClient).GetSVNRevision;
+            if (Length(Output)>0) then aAfterRevision:=Output;
           end;
         end;
       end;
 
-      if (aClient.LocalRevision<>FRET_UNKNOWN_REVISION) and (aBeforeRevision <> aClient.LocalRevision) then
+      if (aClient.LocalRevision<>FRET_UNKNOWN_REVISION) and (aBeforeRevision <> aAfterRevision) then
         FRepositoryUpdated := true
       else
         FRepositoryUpdated := false;
@@ -1855,15 +1913,27 @@ begin
 
          if Assigned(UpdateWarnings) then UpdateWarnings.Add(aModuleName + ': reapplying local changes.');
 
-         // check for default values
-         if ((FPatchCmd='patch'+GetExeExt) OR (FPatchCmd='gpatch'+GetExeExt))
-            then LocalPatchCmd:=FPatchCmd + ' -p0 -i '
-            else LocalPatchCmd:=Trim(FPatchCmd) + ' ';
-
-         ReturnCode:=ExecuteCommandInDir(LocalPatchCmd + DiffFile, FSourceDirectory, Output, FVerbose);
-
-         if ReturnCode<>0 then
+         for NoPatchStrip in boolean do
          begin
+
+           s:=ExtractFileNameSafe(FPatchCmd);
+           if ((s='patch'+GetExeExt) OR (s='gpatch'+GetExeExt)) then
+           begin
+             if NoPatchStrip then
+               LocalPatchCmd:=FPatchCmd + ' -t -p0 -i '
+             else
+               LocalPatchCmd:=FPatchCmd + ' -t -p1 -i ';
+           end
+           else
+           begin
+             if NoPatchStrip then continue;
+             LocalPatchCmd:=Trim(FPatchCmd) + ' ';
+           end;
+
+           ReturnCode:=ExecuteCommandInDir(LocalPatchCmd + DiffFile, FSourceDirectory, Output, FVerbose);
+
+           if (ReturnCode=0) then break;
+
            // Patching can go wrong when line endings are not compatible
            // This happens e.g. with bgracontrols that have CRLF in the source files
            // Try to circumvent this problem by replacing line enddings
@@ -1871,7 +1941,6 @@ begin
            begin
              //CheckoutOrUpdateReturnCode:=ExecuteCommandInDir('sed '+''''+'s/$'+''''+'"/`echo \\\r`/" '+DiffFile+' > '+DiffFile, FSourceDirectory, FVerbose);
              //CheckoutOrUpdateReturnCode:=ExecuteCommandInDir('sed -i '+''''+'s/$/\r/'+''''+' '+DiffFile, FSourceDirectory, FVerbose);
-
              DiffFileCorrectedPath:=IncludeTrailingPathDelimiter(GetTempDirName)+ExtractFileName(DiffFile);
              if FileCorrectLineEndings(DiffFile,DiffFileCorrectedPath) then
              begin
@@ -1882,6 +1951,7 @@ begin
                end;
              end;
            end;
+
          end;
 
          // Report error, but continue !
@@ -1914,7 +1984,7 @@ var
   DiffFile: String;
   RepoExists: boolean;
   LocalPatchCmd : string;
-  Output: string = '';
+  s,Output: string;
   {$IFNDEF MSWINDOWS}
   DiffFileSL:TStringList;
   {$ENDIF}
@@ -1978,7 +2048,7 @@ begin
       UpdateWarnings.Insert(0, {BeginSnippet+' '+}aModuleName + ': WARNING: found modified files.');
       if FKeepLocalChanges=false then
       begin
-        DiffFile:=IncludeTrailingPathDelimiter(FSourceDirectory) + 'REV' + aBeforeRevision + '.diff';
+        DiffFile:=IncludeTrailingPathDelimiter(FSourceDirectory) + DIFFMAGIC + aBeforeRevision + '.diff';
         CreateStoreRepositoryDiff(DiffFile, UpdateWarnings,FSVNClient);
         UpdateWarnings.Add({BeginSnippet+' '+}aModuleName + ': WARNING: reverting before updating.');
         SVNClient.Revert; //Remove local changes
@@ -2051,10 +2121,11 @@ begin
       begin
         Output:='';
 
-        UpdateWarnings.Add(aModuleName + ': reapplying local changes.');
+        if Assigned(UpdateWarnings) then UpdateWarnings.Add(aModuleName + ': reapplying local changes.');
 
-        if ((FPatchCmd='patch'+GetExeExt) OR (FPatchCmd='gpatch'+GetExeExt))
-           then LocalPatchCmd:=FPatchCmd + ' -p0 -i '
+        s:=ExtractFileNameSafe(FPatchCmd);
+        if ((s='patch'+GetExeExt) OR (s='gpatch'+GetExeExt))
+           then LocalPatchCmd:=FPatchCmd + ' -t -p0 -i '
            else LocalPatchCmd:=Trim(FPatchCmd) + ' ';
         CheckoutOrUpdateReturnCode:=ExecuteCommandInDir(LocalPatchCmd + DiffFile, FSourceDirectory, Output, FVerbose);
 
@@ -2083,8 +2154,9 @@ begin
             end;
             if CheckoutOrUpdateReturnCode=0 then
             begin
-              if ((FPatchCmd='patch'+GetExeExt) OR (FPatchCmd='gpatch'+GetExeExt))
-                 then LocalPatchCmd:=FPatchCmd + ' -p0 --binary -i '
+              s:=ExtractFileNameSafe(FPatchCmd);
+              if ((s='patch'+GetExeExt) OR (s='gpatch'+GetExeExt))
+                 then LocalPatchCmd:=FPatchCmd + ' -t -p0 --binary -i '
                  else LocalPatchCmd:=Trim(FPatchCmd) + ' ';
               CheckoutOrUpdateReturnCode:=ExecuteCommandInDir(LocalPatchCmd + DiffFile, FSourceDirectory, Output, FVerbose);
             end;
@@ -2103,44 +2175,6 @@ begin
   end;
 end;
 
-function TInstaller.SimpleExportFromSVN(ModuleName: string; aFileURL,aLocalPath:string): boolean;
-begin
-  result:=false;
-
-  localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (SimpleExportFromSVN: '+ModuleName+'): ';
-
-  // check if we do have a client !!
-  if NOT SVNClient.ValidClient then
-  begin
-    Infoln(localinfotext+SVNClient.RepoExecutableName+' is needed, but cannot be found on the system !!',etWarning);
-    exit;
-  end;
-
-  SVNClient.ModuleName       := ModuleName;
-  SVNClient.LocalRepository  := aLocalPath;
-  SVNClient.Repository       := aFileURL;
-  SVNClient.ExportOnly       := true;
-  SVNClient.DesiredRevision  := '';
-  FSVNClient.DesiredBranch    := '';
-
-  if (Length(SVNClient.LocalRepository)>0) then
-  begin
-    if not(DirectoryExists(SVNClient.LocalRepository)) then
-    begin
-      WritelnLog(localinfotext+'Creating directory '+SVNClient.LocalRepository+' for SVN checkout/export.');
-      ForceDirectoriesSafe(SVNClient.LocalRepository);
-    end;
-    SVNClient.CheckOutOrUpdate;
-    result:=(SVNClient.ReturnCode=0);
-  end
-  else
-  begin
-    //only report validity of remote URL
-    result:=SVNClient.CheckURL;
-  end;
-
-end;
-
 function TInstaller.DownloadFromURL(ModuleName: string): boolean;
 var
   i:integer;
@@ -2151,6 +2185,8 @@ begin
 
   localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (DownloadFromURL: '+ModuleName+'): ';
 
+  if (Length(FURL)=0) then exit;
+
   if (NOT DirectoryIsEmpty(ExcludeTrailingPathDelimiter(FSourceDirectory))) then
   begin
     Infoln(localinfotext+ModuleName+' sources are already there.',etWarning);
@@ -2160,6 +2196,8 @@ begin
   end;
 
   Infoln(localinfotext+'Getting '+ModuleName+' sources.',etInfo);
+
+  if (FURL[Length(FURL)]='/') then SetLength(FURL,Pred(Length(FURL)));
 
   FPCArchive := GetTempFileNameExt('FPCUPTMP','zip');
   result:=GetFile(FURL,FPCArchive);
@@ -2188,7 +2226,14 @@ begin
     FilesList:=FindAllDirectories(FPCArchiveDir,False);
     if FilesList.Count=1 then aName:=FilesList[0];
     FreeAndNil(FilesList);
-    if Pos(LowerCase(ModuleName),LowerCase(ExtractFileName(aName)))>0 then
+    if (
+      (Pos(LowerCase(ModuleName),LowerCase(ExtractFileName(aName)))>0)
+      OR
+      ((ModuleName=_FPC) AND (Pos('source-release',LowerCase(ExtractFileName(aName)))>0))
+      OR
+      ((ModuleName=_LAZARUS) AND (Pos('lazarus-lazarus',LowerCase(ExtractFileName(aName)))>0))
+      )
+    then
     //if LowerCase(ExtractFileName(aName))=LowerCase(ModuleName) then
     begin
       Infoln(infotext+'Moving files due to extra path.',etInfo);
@@ -2200,7 +2245,7 @@ begin
         aFile:=FilesList[i];
         aFile:=StringReplace(aFile,aName,aName+DirectorySeparator+'..',[]);
         aFile:=SafeExpandFileName(aFile);
-        if NOT DirectoryExists(ExtractFileDir(aFile)) then ForceDirectoriesSafe(ExtractFileDir(aFile));
+        ForceDirectoriesSafe(ExtractFileDir(aFile));
         SysUtils.RenameFile(FilesList[i],aFile);
         {$ifdef UNIX}
         //Correct line endings
@@ -2261,33 +2306,14 @@ begin
 
       RemotePath:=FUtilFiles[Counter].RootURL + FUtilFiles[Counter].FileName;
 
-      DownloadSuccess:=false;
+      //if (FUtilFiles[Counter].FileName='libiconv-2.dll') then continue;
 
-      // FPC owned binutils are always served by SVN, so use SVN client and related.
-      if (SVNClient.ValidClient) AND (Pos(FPCBASESVNURL,RemotePath)>0) then
-      begin
-        //first check remote URL
-        DownloadSuccess:=SimpleExportFromSVN('DownloadBinUtils',RemotePath,'');
-        if DownloadSuccess then
-        begin
-          DownloadSuccess:=SimpleExportFromSVN('DownloadBinUtils',RemotePath,InstallPath);
-          DownloadSuccess:=DownloadSuccess AND FileExists(InstallPath+FUtilFiles[Counter].FileName);
-        end;
-      end;
+      DownloadSuccess:=GetFile(FUtilFiles[Counter].RootURL + FUtilFiles[Counter].FileName,InstallPath+FUtilFiles[Counter].FileName);
 
       if (NOT DownloadSuccess) then
       begin
-        Infoln(localinfotext+'Downloading: ' + FUtilFiles[Counter].FileName + ' with SVN failed. Now trying normal download.',etInfo);
-        DownloadSuccess:=GetFile(FUtilFiles[Counter].RootURL + FUtilFiles[Counter].FileName,InstallPath+FUtilFiles[Counter].FileName);
-      end;
-
-      if NOT DownloadSuccess then
-      begin
-        //if (FUtilFiles[Counter].FileName<>'libiconv-2.dll') then
-        begin
-          Infoln(localinfotext+'Error downloading binutil: ' + FUtilFiles[Counter].FileName + ' into ' + ExtractFileDir(InstallPath) + '.',etError);
-          Inc(Errors);
-        end;
+        Infoln(localinfotext+'Error downloading binutil: ' + FUtilFiles[Counter].FileName + ' into ' + ExtractFileDir(InstallPath) + '.',etError);
+        Inc(Errors);
       end
       else
       begin
@@ -2385,7 +2411,7 @@ const
     );
 var
   OperationSucceeded: boolean;
-  SVNZip,aSourceURL: string;
+  SVNZip,SVNDir,aSourceURL: string;
   i:integer;
 begin
   localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (DownloadSVN): ';
@@ -2394,49 +2420,52 @@ begin
 
   SVNZip := GetTempFileNameExt('FPCUPTMP','zip');
 
-  ForceDirectoriesSafe(FSVNDirectory);
+  SVNDir := IncludeTrailingPathDelimiter(FMakeDir)+'svn';
 
-  for i:=0 to (Length(NewSourceURL)-1) do
-  try
-    aSourceURL:=NewSourceURL[i];
-    //always get this file with the native downloader !!
-    OperationSucceeded:=GetFile(aSourceURL,SVNZip,true,true);
-    if (NOT OperationSucceeded) then
-    begin
-      // try one more time
-      SysUtils.DeleteFile(SVNZip);
-      OperationSucceeded:=GetFile(aSourceURL,SVNZip,true,true);
-    end;
-    if (NOT OperationSucceeded) then
-      SysUtils.DeleteFile(SVNZip)
-    else
-      break;
-
-  except
-    on E: Exception do
-    begin
-      OperationSucceeded := false;
-      WritelnLog(etError, localinfotext + 'Exception ' + E.ClassName + '/' + E.Message + ' downloading SVN client', true);
-    end;
-  end;
-
-  if OperationSucceeded then
+  if ForceDirectoriesSafe(SVNDir) then
   begin
-    // Extract, overwrite
-    with TNormalUnzipper.Create do
+    for i:=0 to (Length(NewSourceURL)-1) do
+    try
+      aSourceURL:=NewSourceURL[i];
+      //always get this file with the native downloader !!
+      OperationSucceeded:=GetFile(aSourceURL,SVNZip,true,true);
+      if (NOT OperationSucceeded) then
+      begin
+        // try one more time
+        SysUtils.DeleteFile(SVNZip);
+        OperationSucceeded:=GetFile(aSourceURL,SVNZip,true,true);
+      end;
+      if (NOT OperationSucceeded) then
+        SysUtils.DeleteFile(SVNZip)
+      else
+        break;
+
+    except
+      on E: Exception do
+      begin
+        OperationSucceeded := false;
+        WritelnLog(etError, localinfotext + 'Exception ' + E.ClassName + '/' + E.Message + ' downloading SVN client', true);
+      end;
+    end;
+
+    if OperationSucceeded then
     begin
-      try
-        DeleteDirectoryEx(FSVNDirectory);
-        OperationSucceeded:=DoUnZip(SVNZip,FSVNDirectory,[]);
-      finally
-        Free;
+      // Extract, overwrite
+      with TNormalUnzipper.Create do
+      begin
+        try
+          DeleteDirectoryEx(SVNDir);
+          OperationSucceeded:=DoUnZip(SVNZip,SVNDir,[]);
+        finally
+          Free;
+        end;
       end;
     end;
   end;
 
   if OperationSucceeded then
   begin
-    WritelnLog(localinfotext + 'SVN download and unpacking ok. Not going to search SVN client itself in ' + FSVNDirectory, true);
+    WritelnLog(localinfotext + 'SVN download and unpacking ok. Not going to search SVN client itself in ' + SVNDir, true);
     OperationSucceeded := FindSVNSubDirs;
     if OperationSucceeded then
       SysUtils.Deletefile(SVNZip); //Get rid of temp zip if success.
@@ -2458,38 +2487,17 @@ begin
 
   localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (DownloadOpenSSL): ';
 
-  Infoln(localinfotext+'No OpenSLL library files available for SSL. Going to download them.',etWarning);
-
-  if (NOT OperationSucceeded) {AND (NOT CheckWin32Version(6,2))} then
-  begin
-    if SVNClient.ValidClient then
-    begin
-      OpenSSLFileName:='libeay32.dll';
-      // First check remote URL
-      OperationSucceeded:=SimpleExportFromSVN('DownloadOpenSSL',OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,'');
-      // Perform download
-      if OperationSucceeded then
-        OperationSucceeded:=SimpleExportFromSVN('DownloadOpenSSL',OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,SafeGetApplicationPath);
-
-      OpenSSLFileName:='ssleay32.dll';
-      // First check remote URL
-      if OperationSucceeded then
-        OperationSucceeded:=SimpleExportFromSVN('DownloadOpenSSL',OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,'');
-      // Perform download
-      if OperationSucceeded then
-        OperationSucceeded:=SimpleExportFromSVN('DownloadOpenSSL',OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,SafeGetApplicationPath);
-    end;
-  end;
+  Infoln(localinfotext+'No OpenSSL library files available for SSL. Going to download them.',etWarning);
 
   // Direct download OpenSSL from from Lazarus binaries
-  if (NOT OperationSucceeded) AND (NOT SVNClient.ValidClient) then
+  if (NOT OperationSucceeded) then
   begin
     OpenSSLFileName:='libeay32.dll';
-    OperationSucceeded:=GetFile(OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,SafeGetApplicationPath+OpenSSLFileName,true,true);
+    OperationSucceeded:=GetFile(OPENSSL_URL_LATEST+'/'+OpenSSLFileName,SafeGetApplicationPath+OpenSSLFileName,true,true);
     if OperationSucceeded then
     begin
       OpenSSLFileName:='ssleay32.dll';
-      OperationSucceeded:=GetFile(OPENSSL_URL_LATEST_SVN+'/'+OpenSSLFileName,SafeGetApplicationPath+OpenSSLFileName,true,true);
+      OperationSucceeded:=GetFile(OPENSSL_URL_LATEST+'/'+OpenSSLFileName,SafeGetApplicationPath+OpenSSLFileName,true,true);
     end;
   end;
 
@@ -2498,7 +2506,7 @@ begin
   begin
     localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (DownloadOpenSSL): ';
 
-    Infoln(localinfotext+'Got OpenSLL from '+OPENSSL_URL_LATEST_SVN+'.',etWarning);
+    Infoln(localinfotext+'Got OpenSSL from '+OPENSSL_URL_LATEST+'.',etWarning);
 
     OpenSSLFileName := GetTempFileNameExt('FPCUPTMP','zip');
 
@@ -2557,7 +2565,7 @@ begin
     end;
 
     if OperationSucceeded
-       then Infoln(localinfotext+'OpenSLL library files download and unpacking from '+aSourceURL+' ok.',etWarning)
+       then Infoln(localinfotext+'OpenSSL library files download and unpacking from '+aSourceURL+' ok.',etWarning)
        else Infoln(localinfotext+'Could not download/install openssl library archive.', etError);
 
     SysUtils.Deletefile(OpenSSLFileName); //Get rid of temp zip if success.
@@ -2570,16 +2578,16 @@ end;
 function TInstaller.DownloadWget: boolean;
 const
   {$ifdef win64}
-  NewSourceURL : array [0..0] of string = (
-    //'https://github.com/LongDirtyAnimAlf/fpcupdeluxe/releases/download/zlib/wget-64.zip',
+  NewSourceURL : array [0..1] of string = (
+    FPCUPGITREPO+'/releases/download/windowsx64bins_v1.0/wget.exe',
     //'https://eternallybored.org/misc/wget/1.19.4/64/wget.exe'
     //'https://eternallybored.org/misc/wget/1.20/64/wget.exe'
     'https://eternallybored.org/misc/wget/1.20.3/64/wget.exe'
     );
   {$endif}
   {$ifdef win32}
-  NewSourceURL : array [0..0] of string = (
-    //'https://github.com/LongDirtyAnimAlf/fpcupdeluxe/releases/download/zlib/wget-32.zip',
+  NewSourceURL : array [0..1] of string = (
+    FPCUPGITREPO+'/releases/download/windowsi386bins_v1.0/wget.exe',
     //'https://eternallybored.org/misc/wget/1.19.4/32/wget.exe'
     //'https://eternallybored.org/misc/wget/1.20/32/wget.exe'
     'https://eternallybored.org/misc/wget/1.20.3/32/wget.exe'
@@ -2638,13 +2646,13 @@ function TInstaller.DownloadFreetype: boolean;
 const
   {$ifdef win64}
   NewSourceURL : array [0..1] of string = (
-      'https://github.com/LongDirtyAnimAlf/fpcupdeluxe/releases/download/zlib/freetypewin64.zip',
+      'https://github.com/LongDirtyAnimAlf/fpcupdeluxe/releases/download/windowsx64bins_v1.0/freetypewin64.zip',
       'https://sourceforge.net/projects/gnuwin32/files/freetype/2.3.5-1/freetype-2.3.5-1-bin.zip/download'
     );
   {$endif}
   {$ifdef win32}
   NewSourceURL : array [0..1] of string = (
-      'https://github.com/LongDirtyAnimAlf/fpcupdeluxe/releases/download/zlib/freetypewin32.zip',
+      'https://github.com/LongDirtyAnimAlf/fpcupdeluxe/releases/download/windowsi386bins_v1.0/freetypewin32.zip',
       'https://sourceforge.net/projects/gnuwin32/files/freetype/2.3.5-1/freetype-2.3.5-1-bin.zip/download'
     );
   {$endif}
@@ -2728,7 +2736,8 @@ end;
 function TInstaller.DownloadZlib: boolean;
 const
   TARGETNAME='zlib1.dll';
-  SOURCEURL : array [0..0] of string = (
+  SOURCEURL : array [0..1] of string = (
+    FPCUPGITREPO+'/releases/download/windowsi386bins_v1.0/zlib-1.2.3-bin.zip',
     'https://sourceforge.net/projects/gnuwin32/files/zlib/1.2.3/zlib-1.2.3-bin.zip/download'
     );
 var
@@ -2900,11 +2909,13 @@ end;
 {$IFDEF MSWINDOWS}
 function TInstaller.FindSVNSubDirs: boolean;
 var
+  SVNDir:string;
   SVNFiles: TStringList;
   OperationSucceeded: boolean;
 begin
   localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (FindSVNSubDirs): ';
-  SVNFiles := FindAllFiles(FSVNDirectory, SVNClient.RepoExecutableName + GetExeExt, true);
+  SVNDir := IncludeTrailingPathDelimiter(FMakeDir)+'svn';
+  SVNFiles := FindAllFiles(SVNDir, SVNClient.RepoExecutableName + GetExeExt, true);
   try
     if SVNFiles.Count > 0 then
     begin
@@ -2914,7 +2925,7 @@ begin
     end
     else
     begin
-      Infoln(localinfotext+'Could not find svn executable in or under ' + FSVNDirectory,etInfo);
+      Infoln(localinfotext+'Could not find svn executable in or under ' + SVNDir,etInfo);
       OperationSucceeded := false;
     end;
   finally
@@ -2922,45 +2933,6 @@ begin
   end;
   Result := OperationSucceeded;
 end;
-{
-// experiments
-function TInstaller.FindSVNSubDirs: boolean;
-procedure FileSearch(const dirName:string);
-var
-  searchResult: TSearchRec;
-begin
-  result:='';
-  WritelnLog('Going to search for SVN client in ' + IncludeTrailingPathDelimiter(dirName)+'*');
-  if SysUtils.FindFirst(IncludeTrailingPathDelimiter(dirName)+'*', faAnyFile, searchResult)=0 then
-  begin
-    try
-      repeat
-        if (searchResult.Attr and faDirectory)=0 then
-        begin
-          if SameText(searchResult.Name, SVNClient.RepoExecutableName + GetExeExt) then
-          begin
-            SVNClient.RepoExecutable:=IncludeTrailingPathDelimiter(dirName)+searchResult.Name;
-          end;
-        end else if (searchResult.Name<>'.') and (searchResult.Name<>'..') then
-        begin
-          FileSearch(IncludeTrailingPathDelimiter(dirName)+searchResult.Name);
-        end;
-      until ( (SysUtils.FindNext(searchResult)<>0) OR (Length(SVNClient.RepoExecutable)<>0) );
-    finally
-      SysUtils.FindClose(searchResult);
-    end;
-  end;
-end;
-begin
-  SVNClient.RepoExecutable := '';
-  SVNClient.RepoExecutable := FileSearch(FSVNDirectory);
-  WritelnLog('SVN search finished. Found: ' + SVNClient.RepoExecutable);
-  result:=Length(SVNClient.RepoExecutable)>0;
-  if result
-     then WritelnLog('SVN search finished. Found: ' + SVNClient.RepoExecutable)
-     else WritelnLog('SVN search failed');
-end;
-}
 {$ENDIF}
 
 function TInstaller.GetFPCTarget(Native: boolean): string;
@@ -3088,16 +3060,28 @@ function TInstaller.GetSuitableRepoClient:TRepoClient;
 begin
   result:=nil;
 
+  // Do we need a GIT client or nothing when we need a zip archive from a GIT repo
+  if result=nil then
+  begin
+    if ( AnsiContainsText(FURL,'github.com') OR AnsiContainsText(FURL,'gitlab.com') ) then
+    begin
+      if AnsiContainsText(FURL,'/archive/') then
+        exit //// We do NOT need any repo client !!
+      else
+        result:=GitClient; //We need GIT
+    end;
+  end;
+
+  // Do we need GIT more
+  if result=nil then if DirectoryExists(IncludeTrailingPathDelimiter(FSourceDirectory)+'.git') then result:=GitClient;
+  if result=nil then if ( (AnsiEndsText('.git',FURL)) OR (AnsiEndsText('.git/',FURL)) ) then result:=GitClient;
+
   // Do we need SVN
   if result=nil then if DirectoryExists(IncludeTrailingPathDelimiter(FSourceDirectory)+'.svn') then result:=SVNClient;
   if result=nil then if (Pos(SVNBASEHTTP,LowerCase(FURL))>0) then result:=SVNClient;
   if result=nil then if (Pos('http://svn.',LowerCase(FURL))=1) then result:=SVNClient;
   if result=nil then if (Pos(SVNBASESVN,LowerCase(FURL))>0) then result:=SVNClient;
 
-  // Do we need GIT
-  if result=nil then if DirectoryExists(IncludeTrailingPathDelimiter(FSourceDirectory)+'.git') then result:=GitClient;
-  if result=nil then if ( {(Pos('github',LowerCase(FURL))>0) OR} (Pos('.GIT',UpperCase(FURL))>0) ) then result:=GitClient;
-  if result=nil then if (Pos('gitlab.com/freepascal.org',LowerCase(FURL))>0) then result:=GitClient;
 
   // Do we need HG
   if result=nil then if ( (Pos('hg.code.sf.net',LowerCase(FURL))>0) ) then result:=HGClient;
@@ -3160,7 +3144,7 @@ begin
   infotext:=Copy(Self.ClassName,2,MaxInt)+' (CleanModule: '+ModuleName+'): ';
   Infoln(infotext+'Entering ...',etDebug);
 
-  if not DirectoryExists(FSourceDirectory) then
+  if (not DirectoryExists(FSourceDirectory)) then
   begin
     Infoln(infotext+'No '+ModuleName+' source directory ('+FSourceDirectory+') found [yet] ... nothing to be done',etInfo);
     exit(true);
@@ -3184,6 +3168,8 @@ begin
   result:=false;
   infotext:=Copy(Self.ClassName,2,MaxInt)+' (GetModule: '+ModuleName+'): ';
   Infoln(infotext+'Entering ...',etDebug);
+
+  ForceDirectoriesSafe(FSourceDirectory);
 end;
 
 function TInstaller.CheckModule(ModuleName: string): boolean;
@@ -3231,6 +3217,13 @@ begin
   aRepoClient.LocalRepository  := FSourceDirectory;
   aRepoClient.Repository       := FURL;
 
+
+  if (NOT DirectoryExists(aRepoClient.LocalRepository)) OR (DirectoryIsEmpty(aRepoClient.LocalRepository)) then
+  begin
+    result:=true;
+    exit;
+  end;
+
   aRepoClient.LocalRepositoryExists;
   result:=(aRepoClient.ReturnCode<>FRET_LOCAL_REMOTE_URL_NOMATCH);
 
@@ -3267,6 +3260,7 @@ const
   {$ifndef FPCONLY}
   DARWINCHECKMAGIC='useride: ';
   DARWINHACKMAGIC='./lazbuild$(SRCEXEEXT) --lazarusdir=. --build-ide= --ws=$(LCL_PLATFORM)';
+  HAIKUHACKMAGIC='$(DIFF) $(TEMPNAME3) $(EXENAME)';
   {$endif}
 var
   PatchList:TStringList;
@@ -3275,6 +3269,7 @@ var
   Output: string = '';
   ReturnCode,i,j: integer;
   LocalSourcePatches:string;
+  StripLevel:integer;
   PatchFPC,PatchUniversal,PatchAccepted:boolean;
   {$ifndef FPCONLY}
   PatchLaz:boolean;
@@ -3478,7 +3473,6 @@ begin
     end;
   end;
 
-
   {$ifdef Haiku}
   // we will hack into FPC itself to prevent FPU crash on Haiku
   //if FOnlinePatching then
@@ -3506,10 +3500,43 @@ begin
         PatchList.Free;
       end;
     end;
+
+    PatchList:=TStringList.Create;
+    try
+      PatchList.Clear;
+      PatchFilePath:=ConcatPaths([FSourceDirectory,'compiler'])+DirectorySeparator+MAKEFILENAME;
+
+      if (FileExists(PatchFilePath)) then
+      begin
+        PatchList.LoadFromFile(PatchFilePath);
+        j:=-1;
+        for i:=0 to (PatchList.Count-1) do
+        begin
+          s:=PatchList.Strings[i];
+          if (Pos(HAIKUHACKMAGIC,s)>0) then
+          begin
+            // check if we were already there
+            if (Pos('haiku',PatchList.Strings[i-1]) = 0) then
+            begin
+              j:=i;
+            end;
+            break;
+          end;
+        end;
+        if (j<>-1) then
+        begin
+          Inc(j);
+          PatchList.Insert(j,'endif');
+          PatchList.Insert(j-1,'ifneq ($(OS_TARGET), haiku)');
+          PatchList.SaveToFile(PatchFilePath);
+        end;
+      end;
+
+    finally
+      PatchList.Free;
+    end;
   end;
   {$endif}
-
-
 
   // we will hack into FPC itself for better isolation
   // needs more testing
@@ -3596,30 +3623,33 @@ begin
 
         PatchFilePath:=IncludeTrailingPathDelimiter(FSourceDirectory)+MAKEFILENAME;
 
-        PatchList.LoadFromFile(PatchFilePath);
-
-        // are we able to patch
-        j:=-1;
-        PatchAccepted:=True;
-        for i:=0 to (PatchList.Count-1) do
+        if (FileExists(PatchFilePath)) then
         begin
-          s:=PatchList.Strings[i];
-          if (Pos(DARWINHACKMAGIC,s)>0) then
+          PatchList.LoadFromFile(PatchFilePath);
+
+          // are we able to patch
+          j:=-1;
+          PatchAccepted:=True;
+          for i:=0 to (PatchList.Count-1) do
           begin
-            PatchAccepted:=False;
-            break; // we were here already ... ;-)
+            s:=PatchList.Strings[i];
+            if (Pos(DARWINHACKMAGIC,s)>0) then
+            begin
+              PatchAccepted:=False;
+              break; // we were here already ... ;-)
+            end;
+            if (Pos(DARWINCHECKMAGIC,s)>0) then j:=i; //store position
           end;
-          if (Pos(DARWINCHECKMAGIC,s)>0) then j:=i; //store position
-        end;
 
-        if (PatchAccepted AND (j<>-1)) then
-        begin
-          Inc(j);
-          PatchList.Insert(j+1,'endif');
-          PatchList.Insert(j,'else');
-          PatchList.Insert(j,#9+DARWINHACKMAGIC);
-          PatchList.Insert(j,'ifdef LCL_PLATFORM');
-          PatchList.SaveToFile(PatchFilePath);
+          if (PatchAccepted AND (j<>-1)) then
+          begin
+            Inc(j);
+            PatchList.Insert(j+1,'endif');
+            PatchList.Insert(j,'else');
+            PatchList.Insert(j,#9+DARWINHACKMAGIC);
+            PatchList.Insert(j,'ifdef LCL_PLATFORM');
+            PatchList.SaveToFile(PatchFilePath);
+          end;
         end;
 
       finally
@@ -3634,6 +3664,22 @@ begin
   begin
     PatchList := FindAllFiles(PatchDirectory, '*.patch;*.diff', false);
     try
+
+      if (PatchList.Count>0) then
+      begin
+        if PatchUniversal then
+        begin
+          // patches must have the same name as the module to be installed
+          for i:=Pred(PatchList.Count) downto 0 do
+          begin
+            PatchFilePath:=SafeExpandFileName(PatchList[i]);
+            PatchFilePath:=FileNameWithoutExt(PatchFilePath);
+            PatchAccepted:=(LowerCase(ModuleName)=LowerCase(PatchFilePath));
+            if (NOT PatchAccepted) then PatchList.Delete(i);
+          end;
+        end;
+      end;
+
       if (PatchList.Count>0) then
       begin
         //add standard patches by fpcup(deluxe)
@@ -3641,6 +3687,7 @@ begin
            then LocalSourcePatches:=LocalSourcePatches+','+PatchList.CommaText
            else LocalSourcePatches:=PatchList.CommaText;
       end;
+
     finally
       PatchList.Free;
     end;
@@ -3665,28 +3712,23 @@ begin
              {$endif}
                 else PatchFilePath:=SafeExpandFileName(SafeGetApplicationPath+'patchfpcup'+DirectorySeparator+PatchList[i]);
         end;
+
         if FileExists(PatchFilePath) then
         begin
-
+          StripLevel:=1;
           j:=Pos(STRIPMAGIC,PatchFilePath);
-          if j>0 then
-          begin
-            j:=StrToIntDef(PatchFilePath[j+Length(STRIPMAGIC)],0);
-          end else j:=0;
+          if (j>0) then StripLevel:=StrToIntDef(PatchFilePath[j+Length(STRIPMAGIC)],StripLevel);
 
-          {$IFDEF MSWINDOWS}
-          Processor.Executable := IncludeTrailingPathDelimiter(FMakeDir) + FPatchCmd;
-          {$ELSE}
           Processor.Executable := FPatchCmd;
-          {$ENDIF}
           Processor.Process.Parameters.Clear;
           Processor.Process.CurrentDirectory := ExcludeTrailingPathDelimiter(FSourceDirectory);
 
           // check for default values
-          if ((FPatchCmd='patch'+GetExeExt) OR (FPatchCmd='gpatch'+GetExeExt)) then
+          s:=ExtractFileNameSafe(FPatchCmd);
+          if ((s='patch'+GetExeExt) OR (s='gpatch'+GetExeExt)) then
           begin
-            Processor.Process.Parameters.Add('-p');
-            Processor.Process.Parameters.Add(InttoStr(j));
+            Processor.Process.Parameters.Add('-t');
+            Processor.Process.Parameters.Add('-p'+InttoStr(StripLevel));
             Processor.Process.Parameters.Add('-N');
             {$IF not defined(BSD) or defined(DARWIN)}
             Processor.Process.Parameters.Add('--no-backup-if-mismatch');
@@ -3705,9 +3747,21 @@ begin
             //Execute patch command
             ReturnCode:=Processor.ExecuteAndWait;
 
+            if ( (ReturnCode<>0) AND (StripLevel=1) ) then
+            begin
+              //try again with different [0] strip option
+              j:=Processor.Process.Parameters.IndexOf('-p1');
+              if (j<>-1) then
+              begin
+                Processor.Process.Parameters.Strings[j]:='-p0';
+                ReturnCode:=Processor.ExecuteAndWait;
+              end;
+            end;
+
             // remove the temporary file
             if (PatchFileCorrectedPath<>PatchFilePath) then DeleteFile(PatchFileCorrectedPath);
-            if ReturnCode=0  then
+
+            if (ReturnCode=0)  then
             begin
               result:=true;
               WritelnLog(etInfo, infotext+ModuleName+ ' has been patched successfully with '+PatchList[i] + '.', true);
@@ -3745,43 +3799,50 @@ const
   ConstName = 'RevisionStr';
 var
   //RevisionIncText: Text;
-  RevFileName,ConstStart: string;
+  RevFilePath,ConstStart: string;
   RevisionStringList:TStringList;
   NumRevision:Longint;
 begin
   result:=false;
 
+  if (Pos(' ',aRevision)>0) then exit;
+
   // Only handle Lazarus !
-  if (ModuleName<>_LAZARUS) then exit;
+  // if (ModuleName<>_LAZARUS) then exit;
 
   //if TryStrToInt(aRevision,NumRevision) then
   begin
-    RevFileName:='';
+    RevFilePath:='';
 
-    if (ModuleName=_LAZARUS) then RevFileName:=IncludeTrailingPathDelimiter(FSourceDirectory)+'ide'+PathDelim+REVINCFILENAME;
-    if (ModuleName=_FPC) then RevFileName:=IncludeTrailingPathDelimiter(FSourceDirectory)+'compiler'+PathDelim+REVINCFILENAME;
+    if (ModuleName=_LAZARUS) then RevFilePath:=IncludeTrailingPathDelimiter(FSourceDirectory)+'ide';
+    if (ModuleName=_FPC) then RevFilePath:=IncludeTrailingPathDelimiter(FSourceDirectory)+'compiler';
 
-    if (Length(RevFileName)>0) then
+    if (Length(RevFilePath)>0) then
     begin
-      DeleteFile(RevFileName);
-      RevisionStringList:=TStringList.Create;
-      try
-        if (ModuleName=_LAZARUS) then
-        begin
-          RevisionStringList.Add(RevisionIncComment);
-          ConstStart := Format('const %s = ''', [ConstName]);
-          //RevisionStringList.Add(ConstStart+InttoStr(NumRevision)+''';');
-          RevisionStringList.Add(ConstStart+aRevision+''';');
+      if (NOT DirectoryExists(RevFilePath)) then exit;
+      RevFilePath:=RevFilePath+PathDelim+REVINCFILENAME;
+      DeleteFile(RevFilePath);
+      if (Length(aRevision)>0) then
+      begin
+        RevisionStringList:=TStringList.Create;
+        try
+          if (ModuleName=_LAZARUS) then
+          begin
+            RevisionStringList.Add(RevisionIncComment);
+            ConstStart := Format('const %s = ''', [ConstName]);
+            //RevisionStringList.Add(ConstStart+InttoStr(NumRevision)+''';');
+            RevisionStringList.Add(ConstStart+aRevision+''';');
+          end;
+          if (ModuleName=_FPC) then
+          begin
+            //RevisionStringList.Add(''''+InttoStr(NumRevision)+'''');
+            RevisionStringList.Add(''''+aRevision+'''');
+          end;
+          RevisionStringList.SaveToFile(RevFilePath);
+          result:=true;
+        finally
+          RevisionStringList.Free;
         end;
-        if (ModuleName=_FPC) then
-        begin
-          //RevisionStringList.Add(''''+InttoStr(NumRevision)+'''');
-          RevisionStringList.Add(''''+aRevision+'''');
-        end;
-        RevisionStringList.SaveToFile(RevFileName);
-        result:=true;
-      finally
-        RevisionStringList.Free;
       end;
     end;
   end;
@@ -3792,73 +3853,53 @@ var
   RevFileName,RevString: string;
   RevisionStringList:TStringList;
   idx:integer;
-  NumbersExtr: TRegExpr;
 begin
   result:='';
 
   RevString:='';
   RevFileName:='';
 
-  if (ModuleName=_LAZARUS) OR (ModuleName=_LAZBUILD) then RevFileName:=ConcatPaths([FSourceDirectory,'ide',REVINCFILENAME]);
-  if ModuleName=_FPC then RevFileName:=ConcatPaths([FSourceDirectory,'compiler',REVINCFILENAME]);
-  //if ModuleName=_LAZARUS then RevFileName:=IncludeTrailingPathDelimiter(FSourceDirectory)+'ide'+PathDelim+REVINCFILENAME;
-  //if ModuleName=_FPC then RevFileName:=IncludeTrailingPathDelimiter(FSourceDirectory)+'compiler'+PathDelim+REVINCFILENAME;
+  // First, use try to get revision from compiler.
+  if ModuleName=_FPC then RevString:=CompilerRevision(GetFPCInBinDir);
 
-  if FileExists(RevFileName) then
+  // Second, try to get revision from rev file.
+  if (Length(RevString)=0) then
   begin
-    RevisionStringList:=TStringList.Create;
-    try
-      RevisionStringList.LoadFromFile(RevFileName);
-      if (RevisionStringList.Count>0) then
-      begin
+    if (ModuleName=_LAZARUS) OR (ModuleName=_LAZBUILD) then RevFileName:=ConcatPaths([FSourceDirectory,'ide',REVINCFILENAME]);
+    if ModuleName=_FPC then RevFileName:=ConcatPaths([FSourceDirectory,'compiler',REVINCFILENAME]);
+    //if ModuleName=_LAZARUS then RevFileName:=IncludeTrailingPathDelimiter(FSourceDirectory)+'ide'+PathDelim+REVINCFILENAME;
+    //if ModuleName=_FPC then RevFileName:=IncludeTrailingPathDelimiter(FSourceDirectory)+'compiler'+PathDelim+REVINCFILENAME;
 
-        if ModuleName=_FPC then
-        begin
-          RevString:=Trim(RevisionStringList.Strings[0]);
-        end;
-
-        if (ModuleName=_LAZARUS) OR (ModuleName=_LAZBUILD) then
-        begin
-          idx:=StringListStartsWith(RevisionStringList,'const RevisionStr');
-          if (idx<>-1) then
-          begin
-            RevString:=Trim(RevisionStringList.Strings[idx]);
-          end;
-        end;
-
-        if (Length(RevString)>0) then
-        begin
-          NumbersExtr := TRegExpr.Create;
-          try
-            NumbersExtr.Expression := 'r\d+';
-            if NumbersExtr.Exec(RevString) then
-            begin
-              result := NumbersExtr.Match[0];
-            end
-            else
-            begin
-              NumbersExtr.Expression := '\d+';
-              if NumbersExtr.Exec(RevString) then
-                result := NumbersExtr.Match[0];
-            end;
-            result:=Trim(result);
-            result:=AnsiDequotedStr(result,'''');
-          finally
-            NumbersExtr.Free;
-          end;
-        end;
-      end;
-    finally
-      RevisionStringList.Free;
-    end;
-  end
-  else
-  begin
-    if ModuleName=_FPC then
+    if FileExists(RevFileName) then
     begin
-      result:=CompilerRevision(GetFPCInBinDir);
+      RevisionStringList:=TStringList.Create;
+      try
+        RevisionStringList.LoadFromFile(RevFileName);
+        if (RevisionStringList.Count>0) then
+        begin
+
+          if ModuleName=_FPC then
+          begin
+            RevString:=Trim(RevisionStringList.Strings[0]);
+          end;
+
+          if (ModuleName=_LAZARUS) OR (ModuleName=_LAZBUILD) then
+          begin
+            idx:=StringListStartsWith(RevisionStringList,'const RevisionStr');
+            if (idx<>-1) then
+            begin
+              RevString:=Trim(RevisionStringList.Strings[idx]);
+            end;
+          end;
+
+        end;
+      finally
+        RevisionStringList.Free;
+      end;
     end;
   end;
+
+  result:=RevString;
 end;
 
 function TInstaller.GetRevisionFromVersion(aModuleName,aVersion:string): string;
@@ -3974,7 +4015,7 @@ begin
   end;
 end;
 
-function TInstaller.GetVersionFromSource(aSourcePath:string):string;
+function TInstaller.GetVersionFromSource:string;
 begin
   result:='';
   raise Exception.Create('TInstaller descendants must implement this function themselves.');
@@ -3984,7 +4025,7 @@ begin
   result:='';
   raise Exception.Create('TInstaller descendants must implement this function themselves.');
 end;
-function TInstaller.GetReleaseCandidateFromSource(aSourcePath:string):integer;
+function TInstaller.GetReleaseCandidateFromSource:integer;
 begin
   result:=0;
   raise Exception.Create('TInstaller descendants must implement this function themselves.');
@@ -3994,7 +4035,7 @@ function TInstaller.GetVersion:string;
 var
   s:string;
 begin
-  s:=GetVersionFromSource(FSourceDirectory);
+  s:=GetVersionFromSource;
   if s='0.0.0' then s:=GetVersionFromURL(FURL);
   if (s<>'0.0.0') then
   begin
@@ -4003,7 +4044,7 @@ begin
     FReleaseVersion := -1;
     FPatchVersion := -1;
     VersionFromString(s,FMajorVersion,FMinorVersion,FReleaseVersion,FPatchVersion);
-    FPatchVersion:=GetReleaseCandidateFromSource(FSourceDirectory);
+    FPatchVersion:=GetReleaseCandidateFromSource;
     if FPatchVersion=-1 then FPatchVersion:=ReleaseCandidateFromUrl(FURL);
   end;
   result:=s;
@@ -4035,6 +4076,11 @@ end;
 function TInstaller.IsLazarusInstaller:boolean;
 begin
   result:=GetInstallerClass(TBaseLazarusInstaller);
+end;
+
+function TInstaller.IsHelpInstaller:boolean;
+begin
+  result:=GetInstallerClass(TBaseHelpInstaller);
 end;
 
 function TInstaller.IsUniversalInstaller:boolean;
@@ -4315,7 +4361,6 @@ begin
   FHGClient  := THGClient.Create(Self);
 
   FShell        := '';
-  FSVNDirectory := '';
   FMakeDir      := '';
 
   FNeededExecutablesChecked:=false;

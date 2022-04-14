@@ -83,6 +83,7 @@ begin
           LeftOverOptions.Add('includehelp');
           LeftOverOptions.Add('fpcsplit');
           LeftOverOptions.Add('lazsplit');
+          LeftOverOptions.Add('autotools');
           LeftOverOptions.Add('verbose');
           LeftOverOptions.Add('version');
           try
@@ -178,7 +179,7 @@ begin
          else FManager.LazarusSourceDirectory:=FManager.LazarusInstallDirectory;
       {$endif}
 
-      FManager.SVNExecutable := ExcludeTrailingPathDelimiter(SafeExpandFileName(Options.GetOption('','svnexe','')));
+      FManager.AutoTools:=Options.GetOptionNoParam('','autotools',false);
 
       FManager.CrossToolsDirectory:=ExcludeTrailingPathDelimiter(SafeExpandFileName(Options.GetOption('','crossbindir','')));
       FManager.CrossLibraryDirectory:=ExcludeTrailingPathDelimiter(SafeExpandFileName(Options.GetOption('','crosslibdir','')));
@@ -230,9 +231,9 @@ begin
         FManager.FPCOPT:=FManager.FPCOPT+' -Fl/usr/local/lib';
       end;
       {$ENDIF defined(BSD) and not defined(Darwin)}
-      FManager.FPCDesiredRevision:=Options.GetOption('','fpcrevision','',false);
+      FManager.FPCBranch:=Options.GetOption('','fpcBranch','');
 
-      //FManager.PatchCmd:=Options.GetOption('','patchcmd','patch',false);
+      FManager.PatchCmd:=Options.GetOption('','patchcmd','patch',false);
 
       // Deal with options coming from ini (e.g. Help=true)
       try
@@ -241,6 +242,15 @@ begin
         on E: ECommandLineError do begin
         // option did not have an argument
         bHelp:=Options.GetOptionNoParam('h','help',false);
+        end;
+      end;
+
+      try
+        FManager.NativeFPCBootstrapCompiler:=(NOT Options.GetOption('','onlyupbootstrappers',true));
+      except
+        on E: ECommandLineError do begin
+        // option did not have an argument
+        FManager.NativeFPCBootstrapCompiler:=(NOT Options.GetOptionNoParam('','onlyupbootstrappers'));
         end;
       end;
 
@@ -292,7 +302,7 @@ begin
         FManager.LazarusOpt:=FManager.LazarusOPT+' -Fl/usr/X11R6/lib -Fl/usr/X11R7/lib';
       end;
       {$ENDIF defined(BSD) and not defined(Darwin)}
-      FManager.LazarusDesiredRevision:=Options.GetOption('','lazrevision','',false);
+      FManager.LazarusBranch:=Options.GetOption('','lazBranch','');
       FManager.LCL_Platform:=Options.GetOption('','lclplatform','');
       {$endif}
       FManager.IncludeModules:=Options.GetOption('','include','',false);
@@ -363,11 +373,59 @@ begin
     end;
     FManager.LoadFPCUPConfig;
     //load URLs after LoadFPCUPConfig so we're sure we have loaded/parsed the URL aliases
+
     try
-      FManager.FPCURL:=Options.GetOption('','fpcURL',installerUniversal.GetAlias('fpcURL','stable'));
+      s:=Options.GetOption('','fpcVersion','');
+      if (Length(s)>0) then
+      begin
+        if AnsiEndsText(GITLABEXTENSION,s) then
+          FManager.FPCTag:=s
+        else
+          FManager.FPCURL:=s;
+      end
+      else
+      begin
+        s:=Options.GetOption('','fpcURL','');
+        if (Length(s)>0) then
+          FManager.FPCURL:=s
+        else
+        begin
+          s:='stable.gitlab';
+          FManager.FPCTag:=s;
+          Options.PersistentOptions:=trim(Options.PersistentOptions+' --fpcVersion="'+s+'"')
+        end;
+      end;
+      if (Pos('github.com/LongDirtyAnimAlf',FManager.FPCURL)>0) then FManager.FPCBranch:='master';
+
+      FManager.FPCDesiredRevision:=Options.GetOption('','fpcRevision','',false);
+
       {$ifndef FPCONLY}
-      FManager.LazarusURL:=Options.GetOption('','lazURL',installerUniversal.GetAlias('lazURL','stable'));
+      s:=Options.GetOption('','lazVersion','');
+      if (Length(s)>0) then
+      begin
+        if AnsiEndsText(GITLABEXTENSION,s) then
+          FManager.LazarusTag:=s
+        else
+          FManager.LazarusURL:=s;
+      end
+      else
+      begin
+        s:=Options.GetOption('','lazURL','');
+        if (Length(s)>0) then
+          FManager.LazarusURL:=s
+        else
+        begin
+          s:='stable.gitlab';
+          FManager.LazarusTag:=s;
+          Options.PersistentOptions:=trim(Options.PersistentOptions+' --lazVersion="'+s+'"')
+        end;
+      end;
+      if (Pos('github.com/LongDirtyAnimAlf',FManager.LazarusURL)>0) then FManager.LazarusBranch:='upstream';
+      if (Pos('github.com/LongDirtyAnimAlf/lazarussource',FManager.LazarusURL)>0) then FManager.LazarusBranch:='master';
+
+      FManager.LazarusDesiredRevision:=Options.GetOption('','lazRevision','',false);
       {$endif}
+
     except
       on E:Exception do
       begin
@@ -646,11 +704,11 @@ begin
       end;
 
       // User could have specified relative paths so we're normalizing them.
-      if (FManager.FPCDesiredRevision<>'') then
-        writeln('WARNING: Reverting FPC to revision '+FManager.FPCDesiredRevision);
+      if (FManager.FPCBranch<>'') then
+        writeln('Getting FPC branch: '+FManager.FPCBranch);
       {$ifndef FPCONLY}
-      if (FManager.LazarusDesiredRevision<>'') then
-        writeln('WARNING: Reverting Lazarus to revision '+FManager.LazarusDesiredRevision);
+      if (FManager.LazarusBranch<>'') then
+        writeln('Getting Lazarus branch: '+FManager.LazarusBranch);
       {$endif}
       if FManager.SkipModules<>'' then
         writeln('WARNING: Skipping installation/update of '+FManager.SkipModules);

@@ -29,11 +29,6 @@ Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 }
 
 {$mode objfpc}{$H+}
-(*
-{Define NOCONSOLE e.g. if using Windows GUI {$APPTYPE GUI} or -WG
-this will disable writeln calls
-*)
-{not $DEFINE NOCONSOLE}
 
 interface
 
@@ -168,7 +163,6 @@ type
 
   TFPCupManager=class(TObject)
   private
-    FSVNExecutable: string;
     FHTTPProxyHost: string;
     FHTTPProxyPassword: string;
     FHTTPProxyPort: integer;
@@ -188,24 +182,24 @@ type
     FCrossOS_Target: TOS;
     FCrossOS_SubArch: TSUBARCH;
     FFPCDesiredRevision: string;
-    FFPCDesiredBranch: string;
-    FFPCDesiredTag: string;
     FFPCSourceDirectory: string;
     FFPCInstallDirectory: string;
     FFPCOPT: string;
     FFPCURL: string;
+    FFPCBranch: string;
+    FFPCTAG: string;
     FIncludeModules: string;
     FKeepLocalDiffs: boolean;
     FUseSystemFPC: boolean;
     {$ifndef FPCONLY}
     FLazarusDesiredRevision: string;
-    FLazarusDesiredBranch: string;
-    FLazarusDesiredTag: string;
     FLazarusSourceDirectory: string;
     FLazarusInstallDirectory: string;
     FLazarusOPT: string;
     FLazarusPrimaryConfigPath: string;
     FLazarusURL: string;
+    FLazarusBranch: string;
+    FLazarusTAG: string;
     {$endif}
     FCrossToolsDirectory: string;
     FCrossLibraryDirectory: string;
@@ -220,8 +214,12 @@ type
     FShortCutNameFpcup: string;
     FSkipModules: string;
     FFPCPatches:string;
+    FFPCPreInstallScriptPath:string;
+    FFPCPostInstallScriptPath:string;
     {$ifndef FPCONLY}
     FLazarusPatches:string;
+    FLazarusPreInstallScriptPath:string;
+    FLazarusPostInstallScriptPath:string;
     {$endif}
     FUninstall:boolean;
     FVerbose: boolean;
@@ -237,13 +235,19 @@ type
     FSequencer: TSequencer;
     FSolarisOI:boolean;
     FMUSL:boolean;
+    FAutoTools:boolean;
     FRunInfo:string;
+    procedure SetURL(ATarget,AValue: string);
+    procedure SetTAG(ATarget,AValue: string);
+    procedure SetBranch(ATarget,AValue: string);
     function GetCrossCombo_Target:string;
     {$ifndef FPCONLY}
     function GetLazarusPrimaryConfigPath: string;
     procedure SetLazarusSourceDirectory(AValue: string);
     procedure SetLazarusInstallDirectory(AValue: string);
     procedure SetLazarusURL(AValue: string);
+    procedure SetLazarusTAG(AValue: string);
+    procedure SetLazarusBranch(AValue: string);
     {$endif}
     function GetLogFileName: string;
     procedure SetBaseDirectory(AValue: string);
@@ -251,6 +255,8 @@ type
     procedure SetFPCSourceDirectory(AValue: string);
     procedure SetFPCInstallDirectory(AValue: string);
     procedure SetFPCURL(AValue: string);
+    procedure SetFPCTAG(AValue: string);
+    procedure SetFPCBranch(AValue: string);
     procedure SetCrossToolsDirectory(AValue: string);
     procedure SetCrossLibraryDirectory(AValue: string);
     procedure SetLogFileName(AValue: string);
@@ -258,6 +264,7 @@ type
     function  GetTempDirectory:string;
     function  GetRunInfo:string;
     procedure SetRunInfo(aValue:string);
+    procedure SetNoJobs(aValue:boolean);
   protected
     FShortcutCreated:boolean;
     FLog:TLogger;
@@ -275,8 +282,6 @@ type
     property Context: boolean read FContext write FContext; //Name of the shortcut that points to the fpcup-installed Lazarus
     {$endif}
     property ShortCutNameFpcup:string read FShortCutNameFpcup write FShortCutNameFpcup; //Name of the shortcut that points to fpcup
-    // Full path+filename of SVN executable. Use empty to search for default locations.
-    property SVNExecutable: string read FSVNExecutable write FSVNExecutable;
     // Options that are to be saved in shortcuts/batch file/shell scripts.
     // Excludes temporary options like --verbose
     property PersistentOptions: string read FPersistentOptions write FPersistentOptions;
@@ -306,10 +311,10 @@ type
     property FPCSourceDirectory: string read FFPCSourceDirectory write SetFPCSourceDirectory;
     property FPCInstallDirectory: string read FFPCInstallDirectory write SetFPCInstallDirectory;
     property FPCURL: string read FFPCURL write SetFPCURL;
+    property FPCBranch: string read FFPCBranch write SetFPCBranch;
+    property FPCTAG: string read FFPCTAG write SetFPCTAG;
     property FPCOPT: string read FFPCOPT write FFPCOPT;
     property FPCDesiredRevision: string read FFPCDesiredRevision write FFPCDesiredRevision;
-    property FPCDesiredBranch: string read FFPCDesiredBranch write FFPCDesiredBranch;
-    property FPCDesiredTag: string read FFPCDesiredTag write FFPCDesiredTag;
     property HTTPProxyHost: string read FHTTPProxyHost write FHTTPProxyHost;
     property HTTPProxyPassword: string read FHTTPProxyPassword write FHTTPProxyPassword;
     property HTTPProxyPort: integer read FHTTPProxyPort write FHTTPProxyPort;
@@ -321,11 +326,10 @@ type
     property LazarusInstallDirectory: string read FLazarusInstallDirectory write SetLazarusInstallDirectory;
     property LazarusPrimaryConfigPath: string read GetLazarusPrimaryConfigPath write FLazarusPrimaryConfigPath ;
     property LazarusURL: string read FLazarusURL write SetLazarusURL;
+    property LazarusBranch:string read FLazarusBranch write SetLazarusBranch;
+    property LazarusTAG: string read FLazarusTAG write SetLazarusTAG;
     property LazarusOPT:string read FLazarusOPT write FLazarusOPT;
     property LazarusDesiredRevision:string read FLazarusDesiredRevision write FLazarusDesiredRevision;
-    property LazarusDesiredBranch:string read FLazarusDesiredBranch write FLazarusDesiredBranch;
-    property LazarusDesiredTag:string read FLazarusDesiredTag write FLazarusDesiredTag;
-
     {$endif}
     // Location where fpcup log will be written to.
     property LogFileName: string read GetLogFileName write SetLogFileName;
@@ -339,14 +343,18 @@ type
     // List of modules that must be processed in addition to the default ones
     property IncludeModules:string read FIncludeModules write FIncludeModules;
     // Patch utility to use. Defaults to '(g)patch'
-    property PatchCmd:string read FPatchCmd;
+    property PatchCmd:string read FPatchCmd write FPatchCmd;
     // Whether or not to back up locale changes to .diff and reapply them before compiling
     property ReApplyLocalChanges: boolean read FReApplyLocalChanges write FReApplyLocalChanges;
     // List of modules that must not be processed
     property SkipModules:string read FSkipModules write FSkipModules;
     property FPCPatches:string read FFPCPatches write FFPCPatches;
+    property FPCPreInstallScriptPath:string read FFPCPreInstallScriptPath write FFPCPreInstallScriptPath;
+    property FPCPostInstallScriptPath:string read FFPCPostInstallScriptPath write FFPCPostInstallScriptPath;
     {$ifndef FPCONLY}
     property LazarusPatches:string read FLazarusPatches write FLazarusPatches;
+    property LazarusPreInstallScriptPath:string read FLazarusPreInstallScriptPath write FLazarusPreInstallScriptPath;
+    property LazarusPostInstallScriptPath:string read FLazarusPostInstallScriptPath write FLazarusPostInstallScriptPath;
     {$endif}
     // Exhaustive/exclusive list of modules that must be processed; no other
     // modules may be processed.
@@ -355,7 +363,7 @@ type
     property Verbose:boolean read FVerbose write FVerbose;
     property UseWget:boolean read FUseWget write FUseWget;
     property ExportOnly:boolean read FExportOnly write FExportOnly;
-    property NoJobs:boolean read FNoJobs write FNoJobs;
+    property NoJobs:boolean read FNoJobs write SetNoJobs;
     property SoftFloat:boolean read FSoftFloat write FSoftFloat;
     property OnlinePatching:boolean read FOnlinePatching write FOnlinePatching;
     property UseGitClient:boolean read FUseGitClient write FUseGitClient;
@@ -364,11 +372,16 @@ type
     property ForceLocalRepoClient:boolean read FForceLocalRepoClient write FForceLocalRepoClient;
     property SolarisOI:boolean read FSolarisOI write FSolarisOI;
     property MUSL:boolean read FMUSL write FMUSL;
+    property AutoTools:boolean read FAutoTools write FAutoTools;
     property RunInfo:string read GetRunInfo write SetRunInfo;
     // Fill in ModulePublishedList and ModuleEnabledList and load other config elements
     function LoadFPCUPConfig:boolean;
-    function CheckValidCPUOS: boolean;
+    function CheckValidCPUOS(aCPU:TCPU=TCPU.cpuNone;aOS:TOS=TOS.osNone): boolean;
     function ParseSubArchsFromSource: TStringList;
+    procedure GetCrossToolsFileName(var BinsFileName,LibsFileName:string);
+    procedure GetCrossToolsPath(var BinPath,LibPath:string);
+    function GetCrossBinsURL(var BaseBinsURL,BinsFileName:string):boolean;
+    function GetCrossLibsURL(var BaseLibsURL,LibsFileName:string):boolean;
 
     // Stop talking. Do it! Returns success status
     function Run: boolean;
@@ -453,6 +466,7 @@ uses
   {$ENDIF}
   {$ENDIF}
   StrUtils,
+  fpjson,
   processutils;
 
 { TFPCupManager }
@@ -505,16 +519,224 @@ begin
   FFPCInstallDirectory:=SafeExpandFileName(AValue);
 end;
 
+procedure TFPCupManager.SetURL(ATarget,AValue: string);
+var
+  LocalURL:string;
+  URLLookupMagic:string;
+begin
+  if ((ATarget<>_FPC) {$ifndef FPCONLY}AND (ATarget<>_LAZARUS){$endif}) then
+  begin
+    WritelnLog(etError,'Gitlab alias lookup of '+ATarget+' tag/branch/url error.');
+    exit;
+  end;
+
+  if (ATarget=_FPC) then
+  begin
+    LocalURL:=FFPCURL;
+    URLLookupMagic:=FPCURLLOOKUPMAGIC;
+  end;
+
+  {$ifndef FPCONLY}
+  if (ATarget=_LAZARUS) then
+  begin
+    LocalURL:=FLazarusURL;
+    URLLookupMagic:=LAZARUSURLLOOKUPMAGIC;
+  end;
+  {$endif}
+
+  if LocalURL=AValue then exit;
+
+  if (Pos('://',AValue)>0) then
+    LocalURL:=AValue
+  else
+    LocalURL:=installerUniversal.GetAlias(URLLookupMagic,AValue);
+
+  if (ATarget=_FPC) then FFPCURL:=LocalURL;
+  {$ifndef FPCONLY}
+  if (ATarget=_LAZARUS) then FLazarusURL:=LocalURL;
+  {$endif}
+
+  if ( (Length(LocalURL)=0) AND (Length(AValue)>0) ) then
+  begin
+    if (NOT AnsiEndsText(GITLABEXTENSION,AValue)) then
+      SetTAG(ATarget,AValue+GITLABEXTENSION)
+    else
+      SetTAG(ATarget,AValue);
+  end;
+end;
+
+procedure TFPCupManager.SetTAG(ATarget,AValue: string);
+var
+  s:string;
+  LocalURL,LocalTag,LocalBranch:string;
+  RemoteURL,BranchLookupMagic,TagLookupMagic:string;
+begin
+  if ((ATarget<>_FPC) {$ifndef FPCONLY}AND (ATarget<>_LAZARUS){$endif}) then
+  begin
+    WritelnLog(etError,'Gitlab alias lookup of '+ATarget+' tag/branch/url error.');
+    exit;
+  end;
+
+  if (ATarget=_FPC) then
+  begin
+    LocalTag:=FFPCTAG;
+    LocalBranch:=FFPCBranch;
+    LocalURL:=FFPCURL;
+    RemoteURL:=FPCGITLABREPO;
+    BranchLookupMagic:=FPCBRANCHLOOKUPMAGIC;
+    TagLookupMagic:=FPCTAGLOOKUPMAGIC;
+  end;
+
+  {$ifndef FPCONLY}
+  if (ATarget=_LAZARUS) then
+  begin
+    LocalTag:=FLazarusTAG;
+    LocalBranch:=FLazarusBranch;
+    LocalURL:=FLazarusURL;
+    RemoteURL:=LAZARUSGITLABREPO;
+    BranchLookupMagic:=LAZARUSBRANCHLOOKUPMAGIC;
+    TagLookupMagic:=LAZARUSTAGLOOKUPMAGIC;
+  end;
+  {$endif}
+
+  if AnsiEndsText(GITLABEXTENSION,AValue) then
+  begin
+    LocalURL:='';
+    s:=installerUniversal.GetAlias(TagLookupMagic,AValue);
+    if (Length(s)>0) then
+    begin
+      LocalTag:=s;
+      LocalBranch:='';
+    end
+    else
+    begin
+      s:=installerUniversal.GetAlias(BranchLookupMagic,AValue);
+      if (Length(s)>0) then
+      begin
+        LocalTag:='';
+        if AnsiContainsText(s,'gitlab.com/') then
+        begin
+          LocalURL:=s;
+          LocalBranch:='';
+        end
+        else
+          LocalBranch:=s;
+      end;
+    end;
+    if (Length(s)>0) then
+    begin
+      if (Length(LocalURL)=0) then
+        LocalURL:=RemoteURL;
+    end
+    else
+      WritelnLog(etError,'Gitlab alias lookup of '+ATarget+' tag/branch/url failed. Expect errors.');
+  end
+  else
+  begin
+    LocalTag:=aValue;
+    LocalBranch:='';
+  end;
+
+  if (ATarget=_FPC) then
+  begin
+    FFPCTAG:=LocalTag;
+    FFPCBranch:=LocalBranch;
+    FFPCURL:=LocalURL;
+  end;
+
+  {$ifndef FPCONLY}
+  if (ATarget=_LAZARUS) then
+  begin
+    FLazarusTAG:=LocalTag;
+    FLazarusBranch:=LocalBranch;
+    FLazarusURL:=LocalURL;
+  end;
+  {$endif}
+end;
+
+procedure TFPCupManager.SetBranch(ATarget,AValue: string);
+var
+  s:string;
+  LocalURL,LocalTag,LocalBranch:string;
+  RemoteURL,BranchLookupMagic:string;
+begin
+  if ((ATarget<>_FPC) {$ifndef FPCONLY}AND (ATarget<>_LAZARUS){$endif}) then
+  begin
+    WritelnLog(etError,'Gitlab alias lookup of '+ATarget+' tag/branch/url error.');
+    exit;
+  end;
+
+  if (ATarget=_FPC) then
+  begin
+    LocalTag:=FFPCTAG;
+    LocalBranch:=FFPCBranch;
+    LocalURL:=FFPCURL;
+    RemoteURL:=FPCGITLABREPO;
+    BranchLookupMagic:=FPCBRANCHLOOKUPMAGIC;
+  end;
+
+  {$ifndef FPCONLY}
+  if (ATarget=_LAZARUS) then
+  begin
+    LocalTag:=FLazarusTAG;
+    LocalBranch:=FLazarusBranch;
+    LocalURL:=FLazarusURL;
+    RemoteURL:=LAZARUSGITLABREPO;
+    BranchLookupMagic:=LAZARUSBRANCHLOOKUPMAGIC;
+  end;
+  {$endif}
+
+  if AnsiEndsText(GITLABEXTENSION,AValue) then
+  begin
+    s:=installerUniversal.GetAlias(BranchLookupMagic,AValue);
+    if (Length(s)>0) then
+    begin
+      LocalTag:='';
+      LocalBranch:=s;
+      LocalURL:=RemoteURL;
+    end
+    else
+    begin
+      WritelnLog(etError,'Gitlab alias lookup of '+ATarget+' branch failed. Expect errors.');
+    end;
+  end
+  else
+  begin
+    LocalBranch:=aValue;
+    LocalTag:='';
+  end;
+
+  if (ATarget=_FPC) then
+  begin
+    FFPCTAG:=LocalTag;
+    FFPCBranch:=LocalBranch;
+    FFPCURL:=LocalURL;
+  end;
+
+  {$ifndef FPCONLY}
+  if (ATarget=_LAZARUS) then
+  begin
+    FLazarusTAG:=LocalTag;
+    FLazarusBranch:=LocalBranch;
+    FLazarusURL:=LocalURL;
+  end;
+  {$endif}
+end;
 
 procedure TFPCupManager.SetFPCURL(AValue: string);
 begin
-  if FFPCURL=AValue then Exit;
-  if Pos('://',AValue)>0 then
-    FFPCURL:=AValue
-  else
-    FFPCURL:=installerUniversal.GetAlias('fpcURL',AValue);
+  SetURL(_FPC,AValue);
 end;
 
+procedure TFPCupManager.SetFPCTAG(AValue: string);
+begin
+  SetTAG(_FPC,AValue);
+end;
+
+procedure TFPCupManager.SetFPCBranch(AValue: string);
+begin
+  SetBranch(_FPC,AValue);
+end;
 
 procedure TFPCupManager.SetCrossToolsDirectory(AValue: string);
 begin
@@ -540,11 +762,17 @@ end;
 
 procedure TFPCupManager.SetLazarusURL(AValue: string);
 begin
-  if FLazarusURL=AValue then Exit;
-  if Pos('://',AValue)>0 then
-    FLazarusURL:=AValue
-  else
-    FLazarusURL:=installerUniversal.GetAlias('lazURL',AValue);
+  SetURL(_LAZARUS,AValue);
+end;
+
+procedure TFPCupManager.SetLazarusTAG(AValue: string);
+begin
+  SetTAG(_LAZARUS,AValue);
+end;
+
+procedure TFPCupManager.SetLazarusBranch(AValue: string);
+begin
+  SetBranch(_LAZARUS,AValue);
 end;
 {$endif}
 
@@ -554,17 +782,17 @@ begin
   if (AValue<>'') and (FLog.LogFile=AValue) then Exit;
   // Defaults if empty value specified
   if AValue='' then
-    begin
+  begin
     {$IFDEF MSWINDOWS}
     FLog.LogFile:=SafeGetApplicationPath+'fpcup.log'; //exe directory
     {$ELSE}
     FLog.LogFile:=SafeExpandFileName('~')+DirectorySeparator+'fpcup.log'; //home directory
     {$ENDIF MSWINDOWS}
-    end
+  end
   else
-    begin
+  begin
     FLog.LogFile:=AValue;
-    end;
+  end;
 end;
 
 procedure TFPCupManager.SetMakeDirectory(AValue: string);
@@ -622,15 +850,24 @@ begin
   result:=installerUniversal.GetModuleEnabledList(FModuleEnabledList);
 end;
 
-function TFPCupManager.CheckValidCPUOS: boolean;
+function TFPCupManager.CheckValidCPUOS(aCPU:TCPU;aOS:TOS): boolean;
 var
   TxtFile:Text;
   s,sourceline:string;
   x:integer;
   sl:TStringList;
   cpuindex,osindex:integer;
+  aLocalCPU:TCPU;
+  aLocalOS:TOS;
 begin
   result:=false;
+
+  aLocalCPU:=aCPU;
+  if aLocalCPU=TCPU.cpuNone then aLocalCPU:=CrossCPU_Target;
+  aLocalOS:=aOS;
+  if aLocalOS=TOS.osNone then aLocalOS:=CrossOS_Target;
+
+  if ((aLocalCPU=TCPU.cpuNone) OR (aLocalOS=TOS.osNone)) then exit;
 
   //parsing systems.inc for valid CPU / OS system
   s:=ConcatPaths([FPCSourceDirectory,'compiler'])+DirectorySeparator+'systems.inc';
@@ -639,7 +876,7 @@ begin
     sl:=TStringList.Create;
     try
       sl.LoadFromFile(s);
-      s:='system_'+GetCPU(CrossCPU_Target)+'_'+GetOS(CrossOS_Target);
+      s:='system_'+GetCPU(aLocalCPU)+'_'+GetOS(aLocalOS);
       x:=StringListContains(sl,s);
       if (x<>-1) then result:=true;
     finally
@@ -701,7 +938,7 @@ begin
             sl.Delimiter:=',';
             sl.StrictDelimiter:=true;
             sl.DelimitedText:=sourceline;
-            cpuindex:=sl.IndexOf(GetCPU(CrossCPU_Target));
+            cpuindex:=sl.IndexOf(GetCPU(aLocalCPU));
           finally
             sl.Free;
           end;
@@ -742,7 +979,7 @@ begin
             sl.Delimiter:=',';
             sl.StrictDelimiter:=true;
             sl.DelimitedText:=sourceline;
-            osindex:=sl.IndexOf(GetOS(CrossOS_Target));
+            osindex:=sl.IndexOf(GetOS(aLocalOS));
           finally
             sl.Free;
           end;
@@ -797,15 +1034,11 @@ begin
         end;
 
       end;
-
       CloseFile(TxtFile);
-
     end;
 
   end;
-
 end;
-
 
 function TFPCupManager.ParseSubArchsFromSource: TStringList;
 const
@@ -864,6 +1097,475 @@ begin
   end;
 end;
 
+procedure TFPCupManager.GetCrossToolsFileName(var BinsFileName,LibsFileName:string);
+var
+  s:string;
+begin
+  // Setting the CPU part of the name[s] for the file to download
+  if CrossCPU_Target=TCPU.arm then s:='ARM' else
+    if CrossCPU_Target=TCPU.i386 then s:='i386' else
+      if CrossCPU_Target=TCPU.x86_64 then s:='x64' else
+        if CrossCPU_Target=TCPU.powerpc then s:='PowerPC' else
+          if CrossCPU_Target=TCPU.powerpc64 then s:='PowerPC64' else
+            if CrossCPU_Target=TCPU.avr then s:='AVR' else
+              if CrossCPU_Target=TCPU.m68k then s:='m68k' else
+                s:=UppercaseFirstChar(GetCPU(CrossCPU_Target));
+
+  BinsFileName:=s;
+
+  // Set special CPU names
+  if CrossOS_Target=TOS.darwin then
+  begin
+    // Darwin has some universal binaries and libs
+    if CrossCPU_Target=TCPU.i386 then BinsFileName:='All';
+    if CrossCPU_Target=TCPU.x86_64 then BinsFileName:='All';
+    if CrossCPU_Target=TCPU.aarch64 then BinsFileName:='All';
+    if CrossCPU_Target=TCPU.powerpc then BinsFileName:='PowerPC';
+    if CrossCPU_Target=TCPU.powerpc64 then BinsFileName:='PowerPC';
+  end;
+
+  if CrossOS_Target=TOS.ios then
+  begin
+    // iOS has some universal binaries and libs
+    if CrossCPU_Target=TCPU.arm then BinsFileName:='All';
+    if CrossCPU_Target=TCPU.aarch64 then BinsFileName:='All';
+  end;
+
+  if CrossOS_Target=TOS.aix then
+  begin
+    // AIX has some universal binaries
+    if CrossCPU_Target=TCPU.powerpc then BinsFileName:='PowerPC';
+    if CrossCPU_Target=TCPU.powerpc64 then BinsFileName:='PowerPC';
+  end;
+
+  // Set OS case
+  if CrossOS_Target=TOS.morphos then s:='MorphOS' else
+    if CrossOS_Target=TOS.freebsd then s:='FreeBSD' else
+      if CrossOS_Target=TOS.dragonfly then s:='DragonFlyBSD' else
+        if CrossOS_Target=TOS.openbsd then s:='OpenBSD' else
+          if CrossOS_Target=TOS.netbsd then s:='NetBSD' else
+            if CrossOS_Target=TOS.aix then s:='AIX' else
+              if CrossOS_Target=TOS.msdos then s:='MSDos' else
+                if CrossOS_Target=TOS.freertos then s:='FreeRTOS' else
+                  if CrossOS_Target=TOS.win32 then s:='Windows' else
+                    if CrossOS_Target=TOS.win64 then s:='Windows' else
+                      if CrossOS_Target=TOS.ios then s:='IOS' else
+                      s:=UppercaseFirstChar(GetOS(CrossOS_Target));
+
+  if SolarisOI then s:=s+'OI';
+  BinsFileName:=s+BinsFileName;
+
+  if MUSL then BinsFileName:='MUSL'+BinsFileName;
+
+  // normally, we have the same names for libs and bins URL
+  LibsFileName:=BinsFileName;
+
+  {$IF (defined(Windows)) OR (defined(Linux))}
+  if (
+    ((CrossOS_Target=TOS.darwin) AND (CrossCPU_Target in [TCPU.i386,TCPU.x86_64,TCPU.aarch64]))
+    OR
+    ((CrossOS_Target=TOS.ios) AND (CrossCPU_Target in [TCPU.arm,TCPU.aarch64]))
+    ) then
+  begin
+    // Set special BinsFile for universal tools for Darwin
+    BinsFileName:='AppleAll';
+  end;
+
+  if CrossOS_Target=TOS.android then
+  begin
+    // Android has universal binaries
+    BinsFileName:='AndroidAll';
+  end;
+  {$endif}
+
+  if CrossCPU_Target=TCPU.wasm32 then
+  begin
+    // wasm has some universal binaries
+    BinsFileName:='AllWasm32';
+  end;
+
+  if CrossOS_Target=TOS.linux then
+  begin
+    // PowerPC64 is special: only little endian libs for now
+    if (CrossCPU_Target=TCPU.powerpc64) then
+    begin
+      LibsFileName:=StringReplace(LibsFileName,'PowerPC64','PowerPC64LE',[rfIgnoreCase]);
+    end;
+
+    // ARM is special: can be hard or softfloat (Windows only binutils yet)
+    {$ifdef MSWINDOWS}
+    if (CrossCPU_Target=TCPU.arm) then
+    begin
+      if (Pos('SOFT',UpperCase(CrossOPT))>0) OR (Pos('FPC_ARMEL',UpperCase(FPCOPT))>0) then
+      begin
+        // use softfloat binutils
+        BinsFileName:=StringReplace(LibsFileName,'BinsLinuxARM','BinsLinuxARMSoft',[rfIgnoreCase]);
+      end;
+    end;
+    {$endif}
+  end;
+
+  //{$IF defined(CPUAARCH64) AND defined(DARWIN)}
+  {$ifndef MSWINDOWS}
+  // For most targets, FreeRTOS is a special version of embedded, so just use the embedded tools !!
+  if CrossOS_Target=TOS.freertos then
+  begin
+    // use embedded tools for freertos:
+    if (CrossCPU_Target in SUBARCH_CPU) then
+    begin
+      BinsFileName:=StringReplace(BinsFileName,'FreeRTOS','Embedded',[]);
+    end;
+  end;
+  {$endif}
+
+  // All ready !!
+
+  LibsFileName:='CrossLibs'+LibsFileName;
+  {$ifdef MSWINDOWS}
+  BinsFileName:='WinCrossBins'+BinsFileName;
+  {$else}
+  BinsFileName:='CrossBins'+BinsFileName;
+  {$endif MSWINDOWS}
+end;
+
+procedure TFPCupManager.GetCrossToolsPath(var BinPath,LibPath:string);
+begin
+  // Setting the location of libs and bins on our system, so they can be found by fpcupdeluxe
+  // Normally, we have the standard names for libs and bins paths
+  LibPath:=ConcatPaths([{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION < 30200)}UnicodeString{$ENDIF}(CROSSPATH),'lib',GetCPU(CrossCPU_Target)])+'-';
+  BinPath:=ConcatPaths([{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION < 30200)}UnicodeString{$ENDIF}(CROSSPATH),'bin',GetCPU(CrossCPU_Target)])+'-';
+
+  if MUSL then
+  begin
+    LibPath:=LibPath+'musl';
+    BinPath:=BinPath+'musl';
+  end;
+  LibPath:=LibPath+GetOS(CrossOS_Target);
+  BinPath:=BinPath+GetOS(CrossOS_Target);
+  if SolarisOI then
+  begin
+    LibPath:=LibPath+'-oi';
+    BinPath:=BinPath+'-oi';
+  end;
+
+  {$IF (defined(Windows)) OR (defined(Linux))}
+  // Set special Bins directory for universal tools for Darwin based on clang
+  if (
+    ((CrossOS_Target=TOS.darwin) AND (CrossCPU_Target in [TCPU.i386,TCPU.x86_64,TCPU.aarch64]))
+    OR
+    ((CrossOS_Target=TOS.ios) AND (CrossCPU_Target in [TCPU.arm,TCPU.aarch64]))
+    ) then
+  begin
+    BinPath:=StringReplace(BinPath,GetCPU(CrossCPU_Target),'all',[]);
+    BinPath:=StringReplace(BinPath,GetOS(CrossOS_Target),'apple',[]);
+  end;
+
+  // Set special Bins directory for universal tools for Android based on clang
+  if CrossOS_Target=TOS.android then
+  begin
+    BinPath:=StringReplace(BinPath,GetCPU(CrossCPU_Target),'all',[]);
+  end;
+  {$endif}
+
+  // Set special Bins directory for universal tools for wasm32
+  if CrossCPU_Target=TCPU.wasm32 then
+  begin
+    BinPath:=StringReplace(BinPath,GetOS(CrossOS_Target),'all',[]);
+  end;
+
+  if CrossOS_Target=TOS.darwin then
+  begin
+    // Darwin is special: combined binaries and libs for i386 and x86_64 with osxcross
+    if (CrossCPU_Target=TCPU.i386) OR (CrossCPU_Target=TCPU.x86_64) OR (CrossCPU_Target=TCPU.aarch64) then
+    begin
+      BinPath:=StringReplace(BinPath,GetCPU(CrossCPU_Target),'all',[]);
+      LibPath:=StringReplace(LibPath,GetCPU(CrossCPU_Target),'all',[]);
+    end;
+    if (CrossCPU_Target=TCPU.powerpc) OR (CrossCPU_Target=TCPU.powerpc64) then
+    begin
+      BinPath:=StringReplace(BinPath,GetCPU(CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
+      LibPath:=StringReplace(LibPath,GetCPU(CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
+    end;
+  end;
+
+  if CrossOS_Target=TOS.ios then
+  begin
+    // iOS is special: combined libs for arm and aarch64
+    if (CrossCPU_Target=TCPU.arm) OR (CrossCPU_Target=TCPU.aarch64) then
+    begin
+      BinPath:=StringReplace(BinPath,GetCPU(CrossCPU_Target),'all',[]);
+      LibPath:=StringReplace(LibPath,GetCPU(CrossCPU_Target),'all',[]);
+    end;
+  end;
+
+  if CrossOS_Target=TOS.aix then
+  begin
+    // AIX is special: combined binaries and libs for ppc and ppc64 with osxcross
+    if (CrossCPU_Target=TCPU.powerpc) OR (CrossCPU_Target=TCPU.powerpc64) then
+    begin
+      BinPath:=StringReplace(BinPath,GetCPU(CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
+      LibPath:=StringReplace(LibPath,GetCPU(CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
+    end;
+  end;
+
+  //Put all windows stuff (not that much) in a single windows directory
+  if (CrossOS_Target=TOS.win32) OR (CrossOS_Target=TOS.win64) then
+  begin
+    BinPath:=StringReplace(BinPath,GetOS(CrossOS_Target),'windows',[]);
+    LibPath:=StringReplace(LibPath,GetOS(CrossOS_Target),'windows',[]);
+  end;
+end;
+
+function TFPCupManager.GetCrossBinsURL(var BaseBinsURL,BinsFileName:string):boolean;
+var
+  s:string;
+  success:boolean;
+  Json : TJSONData;
+  Assets : TJSONArray;
+  Item,Asset : TJSONObject;
+  TagName, FileName, FileURL : string;
+  i,iassets : integer;
+begin
+  result:=false;
+
+  BaseBinsURL:='';
+
+  if GetTargetOS=GetOS(TOS.win32) then BaseBinsURL:='wincrossbins'
+  else
+     if GetTargetOS=GetOS(TOS.win64) then BaseBinsURL:='wincrossbins'
+     else
+        if GetTargetOS=GetOS(TOS.linux) then
+        begin
+          if GetTargetCPU=GetCPU(TCPU.i386) then BaseBinsURL:='linuxi386crossbins';
+          if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='linuxx64crossbins';
+          if GetTargetCPU=GetCPU(TCPU.arm) then BaseBinsURL:='linuxarmcrossbins';
+        end
+        else
+          if GetTargetOS=GetOS(TOS.freebsd) then
+          begin
+            if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='freebsdx64crossbins';
+          end
+          else
+            if GetTargetOS=GetOS(TOS.solaris) then
+            begin
+              {if FPCupManager.SolarisOI then}
+              begin
+                if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='solarisoix64crossbins';
+              end;
+            end
+            else
+              if GetTargetOS=GetOS(TOS.darwin) then
+              begin
+                if GetTargetCPU=GetCPU(TCPU.i386) then BaseBinsURL:='darwini386crossbins';
+                if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='darwinx64crossbins';
+                if GetTargetCPU=GetCPU(TCPU.aarch64) then BaseBinsURL:='darwinarm64crossbins';
+              end;
+
+  s:=GetURLDataFromCache(FPCUPGITREPOAPIRELEASES+'?per_page=100');
+  success:=(Length(s)>0);
+
+  if success then
+  begin
+    json:=nil;
+    try
+      try
+        Json:=GetJSON(s);
+      except
+        Json:=nil;
+      end;
+      if JSON.IsNull then success:=false;
+
+      if (NOT success) then
+      begin
+        BaseBinsURL:='';
+        exit;
+      end;
+
+      (*
+      Ss := TStringStream.Create('');
+      try
+        success:=Download(False,FPCUPGITREPOAPI+'/git/refs/tags/'+BaseBinsURL,Ss);
+        if (NOT success) then
+        begin
+          {$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION >= 30200)}
+          Ss.Clear;
+          {$ENDIF}
+          Ss.Position:=0;
+          success:=Download(True,FPCUPGITREPOAPI+'/git/refs/tags/'+BaseBinsURL,Ss);
+        end;
+        if success then s:=Ss.DataString;
+      finally
+        Ss.Free;
+      end;
+
+      if success then
+      begin
+        if (Length(s)>0) then
+        begin
+          try
+            Json:=GetJSON(s);
+          except
+            Json:=nil;
+          end;
+          if JSON.IsNull then success:=false;
+        end;
+      end;
+
+      if success then
+      begin
+        for i:=Pred(Json.Count) downto 0 do
+        begin
+          Item := TJSONObject(Json.Items[i]);
+          TagName:=Item.Get('ref');
+          Delete(TagName,1,Length('refs/tags/'));
+        end;
+
+      end;
+      //FPCUPGITREPOAPI+'/git/refs/tags/'+BaseBinsURL;
+      //FPCUPGITREPOAPIRELEASES+'/tags/wincrossbins_v1.0';
+      *)
+
+      success:=false;
+      FileURL:='';
+      for i:=0 to Pred(Json.Count) do
+      begin
+        Item := TJSONObject(Json.Items[i]);
+        TagName:=Item{%H-}.Get('tag_name');
+        if (Pos(BaseBinsURL,TagName)<>1) then continue;
+        Assets:=Item.Get('assets',TJSONArray(nil));
+        // Search zip
+        for iassets:=0 to Pred(Assets.Count) do
+        begin
+          Asset := TJSONObject(Assets[iassets]);
+          FileName:=Asset{%H-}.Get('name');
+          if AnsiStartsText(BinsFileName+'.zip',FileName) then
+          begin
+            BinsFileName:=FileName;
+            FileURL:=Asset{%H-}.Get('browser_download_url');
+          end;
+          success:=(Length(FileURL)>0);
+          if success then break;
+        end;
+        if (NOT success) then
+        begin
+          // Search any
+          for iassets:=0 to Pred(Assets.Count) do
+          begin
+            Asset := TJSONObject(Assets[iassets]);
+            FileName:=Asset{%H-}.Get('name');
+            if ((ExtractFileExt(FileName)<>'.zip') AND AnsiStartsText(BinsFileName,FileName)) then
+            begin
+              BinsFileName:=FileName;
+              FileURL:=Asset{%H-}.Get('browser_download_url');
+            end;
+            success:=(Length(FileURL)>0);
+            if success then break;
+          end;
+        end;
+        if success then
+        begin
+          BaseBinsURL:=FileURL;
+          BinsFileName:=FileName;
+          result:=true;
+          break;
+        end;
+      end;
+
+    finally
+      if (Json<>nil) AND (NOT Json.IsNull) then Json.Free;
+    end;
+  end;
+
+end;
+
+function TFPCupManager.GetCrossLibsURL(var BaseLibsURL,LibsFileName:string):boolean;
+var
+  s:string;
+  success:boolean;
+  Json : TJSONData;
+  Assets : TJSONArray;
+  Item,Asset : TJSONObject;
+  TagName, FileName, FileURL : string;
+  i,iassets : integer;
+begin
+  result:=false;
+
+  BaseLibsURL:='crosslibs';
+
+  s:=GetURLDataFromCache(FPCUPGITREPOAPIRELEASES+'?per_page=100');
+  success:=(Length(s)>0);
+
+  if success then
+  begin
+    json:=nil;
+    try
+
+      try
+        Json:=GetJSON(s);
+      except
+        Json:=nil;
+      end;
+      if JSON.IsNull then success:=false;
+
+      if (NOT success) then
+      begin
+        BaseLibsURL:='';
+        exit;
+      end;
+
+      success:=false;
+      FileURL:='';
+      for i:=0 to Pred(Json.Count) do
+      begin
+        Item := TJSONObject(Json.Items[i]);
+        TagName:=Item{%H-}.Get('tag_name');
+        if (Pos(BaseLibsURL,TagName)<>1) then continue;
+        Assets:=Item.Get('assets',TJSONArray(nil));
+        // Search zip
+        for iassets:=0 to Pred(Assets.Count) do
+        begin
+          Asset := TJSONObject(Assets[iassets]);
+          FileName:=Asset{%H-}.Get('name');
+          if AnsiStartsText(LibsFileName+'.zip',FileName) then
+          begin
+            LibsFileName:=FileName;
+            FileURL:=Asset{%H-}.Get('browser_download_url');
+          end;
+          success:=(Length(FileURL)>0);
+          if success then break;
+        end;
+        if (NOT success) then
+        begin
+          // Search any
+          for iassets:=0 to Pred(Assets.Count) do
+          begin
+            Asset := TJSONObject(Assets[iassets]);
+            FileName:=Asset{%H-}.Get('name');
+            if ((ExtractFileExt(FileName)<>'.zip') AND AnsiStartsText(LibsFileName,FileName)) then
+            begin
+              LibsFileName:=FileName;
+              FileURL:=Asset{%H-}.Get('browser_download_url');
+            end;
+            success:=(Length(FileURL)>0);
+            if success then break;
+          end;
+        end;
+        if success then
+        begin
+          BaseLibsURL:=FileURL;
+          LibsFileName:=FileName;
+          result:=true;
+          break;
+        end;
+      end;
+
+    finally
+      if (Json<>nil) AND (NOT Json.IsNull) then Json.Free;
+    end;
+  end;
+
+end;
+
 
 function TFPCupManager.GetRunInfo:string;
 begin
@@ -879,6 +1581,20 @@ begin
     FRunInfo:=aValue;
 end;
 
+procedure TFPCupManager.SetNoJobs(aValue:boolean);
+begin
+  {$ifdef Haiku}
+  FNoJobs:=True;
+  RunInfo:='No make jobs on Haiku !';
+  {$else}
+  FNoJobs:=aValue;
+  {$endif}
+  if (GetLogicalCpuCount<=1) AND (NOT FNoJobs) then
+  begin
+    RunInfo:='No make jobs due to CPU count [smaller or] equal to 1 !';
+    FNoJobs:=True;
+  end;
+end;
 
 function TFPCupManager.Run: boolean;
 var
@@ -964,11 +1680,11 @@ end;
 
 constructor TFPCupManager.Create;
 begin
-  Verbose:=false;
-  UseWget:=false;
-  ExportOnly:=false;
-  NoJobs:=false;
-  UseGitClient:=false;
+  FVerbose:=false;
+  FUseWget:=false;
+  FExportOnly:=false;
+  FNoJobs:=True;
+  FUseGitClient:=false;
   FNativeFPCBootstrapCompiler:=true;
   ForceLocalRepoClient:=false;
 
@@ -977,8 +1693,17 @@ begin
   FSwitchURL:=false;
   FSolarisOI:=false;
   FMUSL:=false;
+  FAutoTools:=false;
 
+  FCrossOS_Target:=TOS.osNone;
+  FCrossCPU_Target:=TCPU.cpuNone;
+  FCrossOS_SubArch:=TSUBARCH.saNone;
+
+  {$if (defined(BSD) and not defined(DARWIN)) or (defined(Solaris))}
+  FPatchCmd:='gpatch';
+  {$else}
   FPatchCmd:='patch'+GetExeExt;
+  {$endif}
 
   FModuleList:=TStringList.Create;
   FModuleEnabledList:=TStringList.Create;
@@ -1124,9 +1849,10 @@ function TSequencer.DoExec(FunctionName: string): boolean;
   const
     DEBIAN_INSTALL_COMMAND='sudo apt-get install';
 
-    DEBIAN_LIBS : array [0..15] of string = (
+    DEBIAN_LIBS : array [0..16] of string = (
     'unrar',
     'unzip',
+    'p7zip',
     'wget',
     'make',
     'gcc',
@@ -1262,7 +1988,7 @@ function TSequencer.DoExec(FunctionName: string): boolean;
       AdvicedLibs:=AdvicedLibs+
                    'make binutils build-essential gdb gcc subversion unrar devscripts libc6-dev freeglut3-dev libgl1-mesa libgl1-mesa-dev '+
                    'libglu1-mesa libglu1-mesa-dev libgpmg1-dev libsdl-dev libXxf86vm-dev libxtst-dev '+
-                   'libxft2 libfontconfig1 xfonts-scalable gtk2-engines-pixbuf unrar';
+                   'libxft2 libfontconfig1 xfonts-scalable gtk2-engines-pixbuf appmenu-gtk-module unrar';
     end
     else
     if (AnsiContainsText(Output,'rhel') OR AnsiContainsText(Output,'centos') OR AnsiContainsText(Output,'scientific') OR AnsiContainsText(Output,'fedora') OR AnsiContainsText(Output,'redhat'))  then
@@ -1310,7 +2036,7 @@ function TSequencer.DoExec(FunctionName: string): boolean;
     if (NOT result) AND (Length(Output)>0) then
     begin
       FParent.WritelnLog(etWarning,'You need to install at least '+Output+' to build Lazarus !!', true);
-      FParent.WritelnLog(etWarning,'Make, binutils, subversion/svn [and gdb] are also required !!', true);
+      FParent.WritelnLog(etWarning,'Make, binutils, git and gdb (optional) are also required !!', true);
     end;
 
     // do not error out ... user could only install FPC
@@ -1399,7 +2125,7 @@ begin
 
   Ultibo:=((Pos('github.com/ultibohub',FParent.FPCURL)>0){$ifndef FPCONLY} OR (Pos('github.com/ultibohub',FParent.LazarusURL)>0){$endif});
 
-  CrossCompiling:=(FParent.CrossCPU_Target<>TCPU.cpuNone) or (FParent.CrossOS_Target<>TOS.osNone);
+  CrossCompiling:=(FParent.CrossCPU_Target<>TCPU.cpuNone) OR (FParent.CrossOS_Target<>TOS.osNone);
 
   if Ultibo then
     LocalFPCSourceDir:=IncludeTrailingPathDelimiter(FParent.FPCSourceDirectory)+'source'
@@ -1409,7 +2135,7 @@ begin
   //check if this is a known module:
 
   // FPC:
-  if (ModuleName=_FPC) OR (ModuleName=_MAKEFILECHECKFPC) then
+  if ((ModuleName=_FPC) OR (ModuleName=_MAKEFILECHECKFPC)) then
   begin
     if assigned(FInstaller) then
     begin
@@ -1434,6 +2160,9 @@ begin
 
     (FInstaller as TFPCInstaller).BootstrapCompilerDirectory:=FParent.BootstrapCompilerDirectory;
     (FInstaller as TFPCInstaller).SourcePatches:=FParent.FPCPatches;
+    (FInstaller as TFPCInstaller).PreInstallScriptPath:=FParent.FPCPreInstallScriptPath;
+    (FInstaller as TFPCInstaller).PostInstallScriptPath:=FParent.FPCPostInstallScriptPath;
+
     (FInstaller as TFPCInstaller).SoftFloat:=FParent.SoftFloat;
     if FParent.MUSL then
       (FInstaller as TFPCInstaller).NativeFPCBootstrapCompiler:=false
@@ -1441,9 +2170,9 @@ begin
       (FInstaller as TFPCInstaller).NativeFPCBootstrapCompiler:=FParent.NativeFPCBootstrapCompiler;
     FInstaller.CompilerOptions:=FParent.FPCOPT;
     FInstaller.DesiredRevision:=FParent.FPCDesiredRevision;
-    FInstaller.DesiredBranch:=FParent.FPCDesiredBranch;
-    FInstaller.DesiredTag:=FParent.FPCDesiredTag;
     FInstaller.URL:=FParent.FPCURL;
+    FInstaller.Branch:=FParent.FPCBranch;
+    FInstaller.TAG:=FParent.FPCTag;
   end
 
   {$ifndef FPCONLY}
@@ -1480,20 +2209,19 @@ begin
     else
       FInstaller:=TLazarusNativeInstaller.Create;
 
-    FInstaller.SourceDirectory:=FParent.LazarusSourceDirectory;
-    FInstaller.InstallDirectory:=FParent.LazarusInstallDirectory;
-
     FInstaller.CompilerOptions:=FParent.LazarusOPT;
 
     FInstaller.DesiredRevision:=FParent.LazarusDesiredRevision;
-    FInstaller.DesiredBranch:=FParent.LazarusDesiredBranch;
-    FInstaller.DesiredTag:=FParent.LazarusDesiredTag;
     // LCL_Platform is only used when building LCL, but the Lazarus module
     // will take care of that.
     (FInstaller as TLazarusInstaller).LCL_Platform:=FParent.LCL_Platform;
-    (FInstaller as TLazarusInstaller).PrimaryConfigPath:=FParent.LazarusPrimaryConfigPath;
-    (FInstaller as TLazarusInstaller).SourcePatches:=FParent.FLazarusPatches;
+    (FInstaller as TLazarusInstaller).SourcePatches:=FParent.LazarusPatches;
+    (FInstaller as TLazarusInstaller).PreInstallScriptPath:=FParent.LazarusPreInstallScriptPath;
+    (FInstaller as TLazarusInstaller).PostInstallScriptPath:=FParent.LazarusPostInstallScriptPath;
+
     FInstaller.URL:=FParent.LazarusURL;
+    FInstaller.Branch:=FParent.LazarusBranch;
+    FInstaller.TAG:=FParent.LazarusTag;
   end
 
   //Convention: help modules start with HelpFPC
@@ -1529,10 +2257,6 @@ begin
         FInstaller.free; // get rid of old FInstaller
     end;
     FInstaller:=THelpLazarusInstaller.Create;
-
-    FInstaller.SourceDirectory:=FParent.LazarusSourceDirectory;
-    FInstaller.InstallDirectory:=FParent.LazarusInstallDirectory;
-    (FInstaller as THelpLazarusInstaller).LazarusPrimaryConfigPath:=FParent.LazarusPrimaryConfigPath;
   end
   {$endif}
   else       // this is a universal module
@@ -1554,6 +2278,7 @@ begin
         'mORMotPXL'        : FInstaller:=TmORMotPXLInstaller.Create;
         'internettools'    : FInstaller:=TInternetToolsInstaller.Create;
         'develtools4fpc'   : FInstaller:=TDeveltools4FPCInstaller.Create;
+        'xtensatools4fpc'  : FInstaller:=TXTensaTools4FPCInstaller.Create;
         'mbf-freertos-wio' : FInstaller:=TMBFFreeRTOSWioInstaller.Create;
         'mORMot2'          : FInstaller:=TmORMot2Installer.Create;
         'wst'              : FInstaller:=TWSTInstaller.Create;
@@ -1565,10 +2290,7 @@ begin
       // Use compileroptions for chosen FPC compile options...
       FInstaller.CompilerOptions:=FParent.FPCOPT;
       {$ifndef FPCONLY}
-      (FInstaller as TUniversalInstaller).LazarusSourceDir:=FParent.FLazarusSourceDirectory;
-      (FInstaller as TUniversalInstaller).LazarusInstallDir:=FParent.FLazarusInstallDirectory;
       (FInstaller as TUniversalInstaller).LazarusCompilerOptions:=FParent.FLazarusOPT;
-      (FInstaller as TUniversalInstaller).LazarusPrimaryConfigPath:=FParent.LazarusPrimaryConfigPath;
       (FInstaller as TUniversalInstaller).LCL_Platform:=FParent.LCL_Platform;
       {$endif}
   end;
@@ -1578,8 +2300,12 @@ begin
     FInstaller.BaseDirectory:=FParent.BaseDirectory;
     FInstaller.FPCSourceDir:=LocalFPCSourceDir;
     FInstaller.FPCInstallDir:=FParent.FPCInstallDirectory;
+    {$ifndef FPCONLY}
+    FInstaller.LazarusSourceDir:=FParent.LazarusSourceDirectory;
+    FInstaller.LazarusInstallDir:=FParent.LazarusInstallDirectory;
+    FInstaller.LazarusPrimaryConfigPath:=FParent.LazarusPrimaryConfigPath;
+    {$endif}
     FInstaller.TempDirectory:=FParent.TempDirectory;
-    if (Length(FParent.SVNExecutable)>0) then FInstaller.SVNClient.RepoExecutable:=FParent.SVNExecutable;
     {$IFDEF MSWINDOWS}
     FInstaller.SVNClient.ForceLocal:=FParent.ForceLocalRepoClient;
     FInstaller.GitClient.ForceLocal:=FParent.ForceLocalRepoClient;

@@ -59,6 +59,7 @@ type
     function GetRepoExecutable: string; override;
     function GetRepoExecutableName: string; override;
     function FindRepoExecutable: string; override;
+    function GetRepositoryURL:string; override;
   public
     procedure CheckOutOrUpdate; override;
     function Commit(Message: string): boolean; override;
@@ -77,6 +78,7 @@ type
 implementation
 
 uses
+  Process,
   StrUtils,
   installerCore,
   processutils,
@@ -126,6 +128,13 @@ begin
     FRepoExecutable := (SafeGetApplicationPath  + RepoExecutableName + '.exe');
   {$ENDIF MSWINDOWS}
 
+  {$ifdef UNIX}
+  if not FileExists(FRepoExecutable) then
+    FRepoExecutable := ('/usr/local/git/bin/'  + RepoExecutableName);
+  if not FileExists(FRepoExecutable) then
+    FRepoExecutable := ('/opt/local/git/bin/'  + RepoExecutableName);
+  {$endif UNIX}
+
   if not FileExists(FRepoExecutable) then
   begin
     //current directory. Note: potential for misuse by malicious program.
@@ -167,6 +176,21 @@ begin
     Result := ''
   else
     Result := FRepoExecutable;
+end;
+
+function TGitClient.GetRepositoryURL:string;
+var
+  aURL:string;
+begin
+  result:=inherited;
+  if (Pos('gitlab.com/freepascal.org',result)>0) then
+  begin
+    // To run errorfree on all systems, .git needs to be appended to the desired URL
+    aURL:=ExcludeTrailingSlash(result);
+    if (NOT AnsiEndsText('.git',aURL)) then aURL:=aURL+'.git';
+    if (result[Length(result)]='/') then aURL:=aURL+'/';
+    result:=aURL;
+  end;
 end;
 
 procedure TGitClient.CheckOut(UseForce:boolean=false);
@@ -214,8 +238,8 @@ begin
   end
   else
   begin
-    //On Haiku, arm and aarch64, always get a shallow copy of the repo
-    {$if defined(CPUAARCH64) OR defined(CPUARM) OR (defined(CPUPOWERPC64) AND defined(FPC_ABI_ELFV2)) OR defined(Haiku) OR defined(AROS) OR defined(Morphos)}
+    //On Haiku and alikes, always get a shallow copy of the repo
+    {$if defined(Haiku) OR defined(AROS) OR defined(Morphos) OR (defined(CPUPOWERPC64) AND defined(FPC_ABI_ELFV2))}
     Command := ' clone --recurse-submodules --depth 1';
     {$else}
     Command := ' clone --recurse-submodules';
@@ -230,7 +254,8 @@ begin
       Command := Command+ ' ' + DesiredRevision;
 
     if (Length(DesiredTag)>0) AND (Uppercase(trim(DesiredTag)) <> 'MAIN') AND (Uppercase(trim(DesiredTag)) <> 'MASTER') then
-      Command := Command+ ' --depth 1 --branch ' + DesiredTag;
+      //Command := Command+ ' --depth 1 --branch ' + DesiredTag;
+      Command := Command+ ' --branch ' + DesiredTag;
 
     Command := Command + ' ' +  Repository + ' ' + LocalRepository;
 
@@ -301,7 +326,8 @@ begin
   if ExportOnly then exit;
   if NOT ValidClient then exit;
   //FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' diff --git ', LocalRepository, Result, Verbose);
-  FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' diff --no-prefix -p ', LocalRepository, Result, Verbose);
+  //FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' diff --no-prefix -p ', LocalRepository, Result, Verbose);
+  FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' diff -p ', LocalRepository, Result, Verbose);
 end;
 
 procedure TGitClient.Log(var Log: TStringList);
@@ -329,6 +355,10 @@ procedure TGitClient.Update;
 var
   Command: string;
   Output: string = '';
+  Tags: string = '';
+  aCurrentTag,aCurrentBranch:string;
+  aNewTag,aNewBranch:string;
+  i:integer;
 begin
   FReturnCode := 0;
   if ExportOnly then exit;
@@ -337,29 +367,105 @@ begin
   // Invalidate our revision number cache
   FLocalRevision := FRET_UNKNOWN_REVISION;
 
-  // Get updates (equivalent to git fetch and git merge)
-  // --all: fetch all remotes
-  Command := ' pull --all --recurse-submodules=yes';
-  FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
-  FReturnOutput := Output;
-
+  {
+  //FReturnCode := TInstaller(Parent).ExecuteCommandInDir(FRepoExecutable,['tag'], LocalRepository, Tags, '', Verbose);
+  FReturnCode := TInstaller(Parent).ExecuteCommandInDir(FRepoExecutable,['show','--no-color','--oneline','-s'], LocalRepository, Output, '', Verbose);
+  //FReturnCode := TInstaller(Parent).ExecuteCommand(FRepoExecutable,['show','--no-color','--oneline','-s',LocalRepository], Output, Verbose);
+  //RunCommandInDir(LocalRepository,FRepoExecutable,['show','--no-color','--oneline','-s'], Output,FReturnCode,[poUsePipes, poStderrToOutPut]{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION >= 30200)},swoHide{$ENDIF});
   if FReturnCode = 0 then
   begin
-    // Notice that the result of a merge will not be checked out in the submodule,
-    //"git submodule update" has to be called afterwards to bring the work tree up to date with the merge result.
-    Command := ' submodule update ';
-    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Verbose);
+    i:=Pos('tag: ',Output);
+    if (i>0) then
+    begin
+      aCurrentTag:=Copy(Output,i+5,MaxInt);
+      i:=Pos(')',aCurrentTag);
+      if (i>0) then
+      begin
+        SetLength(aCurrentTag,i-1);
+      end;
+    end;
+  end;
+  }
+
+  Command:='';
+
+  if ((Length(Command)=0) AND (Length(DesiredTag)>0)) then
+  begin
+    Command := ' describe --tags --abbrev=0';
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    Command:='';
+    if FReturnCode = 0 then
+    begin
+      if (DesiredTag<>Trim(Output)) then
+        Command := ' checkout --force '+DesiredTag
+      else
+        Command := ' pull';
+    end;
   end;
 
-  if (FReturnCode = 0){ and (Length(DesiredRevision)>0) and (uppercase(trim(DesiredRevision)) <> 'HEAD')}
-  then
+  if ((Length(Command)=0) AND (Length(DesiredBranch)>0)) then
   begin
-    //SSL Certificate problem
-    //git config --system http.sslCAPath /absolute/path/to/git/certificates
-    // always reset hard towards desired revision
-    Command := ' reset --hard ' + DesiredRevision;
-    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Verbose);
+    Command := ' rev-parse --abbrev-ref HEAD';
+    //Command := ' symbolic-ref --short HEAD';
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    Command:='';
+    if FReturnCode = 0 then
+    begin
+      if (DesiredBranch<>Trim(Output)) then
+        Command := ' checkout --force '+DesiredBranch
+      else
+        Command := ' pull';
+    end;
   end;
+
+  if (Length(Command)>0) then
+  begin
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    FReturnOutput := Output;
+  end
+  else
+  begin
+    Command := ' init';
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    Command := ' remote add origin '+Repository;
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    Command := ' pull';
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    Command := ' fetch --tags';
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+
+    //Command := ' pull --all --recurse-submodules=yes';
+    //FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+    //FReturnOutput := Output;
+
+    //if (FReturnCode = 0) then
+    begin
+      Command:='';
+      if (Length(DesiredTag)>0) then Command := DesiredTag;
+      if (Length(DesiredBranch)>0) then Command := DesiredBranch;
+      if (Length(Command)=0) then
+      begin
+        FReturnCode := TInstaller(Parent).ExecuteCommandInDir(FRepoExecutable,['log','--branches','-1','--pretty=format:"%H"'],LocalRepository, Output, '', Verbose);
+        if (FReturnCode = 0) then Command:=Trim(Output);
+      end;
+      Command:=' checkout --force ' + Command;
+      FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
+      FReturnOutput := Output;
+    end;
+
+    {
+    if (FReturnCode = 0){ and (Length(DesiredRevision)>0) and (uppercase(trim(DesiredRevision)) <> 'HEAD')}
+    then
+    begin
+      //SSL Certificate problem
+      //git config --system http.sslCAPath /absolute/path/to/git/certificates
+      // always reset hard towards desired revision
+      Command := ' reset --hard ' + DesiredRevision;
+      FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Verbose);
+    end;
+    }
+  end;
+
 end;
 
 procedure TGitClient.ParseFileList(const CommandOutput: string; var FileList: TStringList; const FilterCodes: array of string);
@@ -415,8 +521,8 @@ begin
   if NOT ValidClient then exit;
 
   // Actual clone/checkout
-  Command := ' remote set-url origin ' +  Repository + ' ' + LocalRepository;
-  FReturnCode := TInstaller(Parent).ExecuteCommand(DoubleQuoteIfNeeded(FRepoExecutable) + Command, Output, Verbose);
+  Command := ' remote set-url origin ' +  Repository;
+  FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + Command, LocalRepository, Output, Verbose);
 
   // If command fails, e.g. due to misconfigured firewalls blocking ICMP etc, retry a few times
   RetryAttempt := 1;
@@ -427,9 +533,15 @@ begin
     while (FReturnCode <> 0) and (RetryAttempt < ERRORMAXRETRIES) do
     begin
       Sleep(500); //Give everybody a chance to relax ;)
-      FReturnCode := TInstaller(Parent).ExecuteCommand(DoubleQuoteIfNeeded(FRepoExecutable) + Command, Output, Verbose); //attempt again
+      FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + Command, LocalRepository, Output, Verbose);
       RetryAttempt := RetryAttempt + 1;
     end;
+  end;
+
+  if (FReturnCode = 0) then
+  begin
+    Command := ' fetch --tags';
+    FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + command, LocalRepository, Output, Verbose);
   end;
 end;
 
@@ -464,8 +576,9 @@ function TGitClient.LocalRepositoryExists: boolean;
 var
   Output: string = '';
   URL: string;
+  RepoURL,RemoteURL:string;
 begin
-  Result := false;
+  result := false;
   FReturnCode := 0;
   if ExportOnly then exit;
   if NOT ValidClient then exit;
@@ -475,7 +588,7 @@ begin
   // fatal: Not a git repository (or any of the parent directories): .git
   // to std err
   FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' status --porcelain ', LocalRepository, Output, Verbose);
-  if FReturnCode = 0 then
+  if (FReturnCode = 0) then
   begin
     // There is a git repository here.
 
@@ -494,13 +607,27 @@ begin
     if Repository = '' then
     begin
       Repository := URL;
-      Result := true;
+      result := true;
     end
     else
     begin
-      if StripUrl(Repository) = StripUrl(URL) then
+      RepoURL:=ExcludeTrailingSlash(StripUrl(URL));
+      RemoteURL:=ExcludeTrailingSlash(StripUrl(Repository));
+      if (Pos(RepoURL,RemoteURL)=1) then
       begin
-        Result := true;
+        result := true;
+        // Check if we have an exact match.
+        // If not, set remote URL to correct value.
+        // This might be the case when .git is missing from the URL.
+        // If things are well, this has to be done only once.
+        if (RepoURL<>RemoteURL) then
+        begin
+          FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' remote set-url origin ' + Repository, LocalRepository, Output, Verbose);
+          if (FReturnCode <> 0) then
+          begin
+            result := false;
+          end;
+        end;
       end
       else
       begin
@@ -552,21 +679,57 @@ begin
   if NOT ValidClient then exit;
   if NOT DirectoryExists(LocalRepository) then exit;
 
-  // Only update if we have invalid revision info, in order to minimize git info calls
-  if FLocalRevision = FRET_UNKNOWN_REVISION then
+  // Only update if we have invalid revision info, in order to minimize git describe calls
+  if (FLocalRevision = FRET_UNKNOWN_REVISION) then
   begin
-    //todo: find out: without max-count, I can get multiple entries. No idea what these mean!??
-    // alternative command: rev-parse --verify "HEAD^0" but that doesn't look as low-level ;)
     try
-      //FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' rev-list --max-count=1 HEAD ', LocalRepository, Output, Verbose);
-      FReturnCode := TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' describe --tags --all --long --always ', LocalRepository, Output, Verbose);
-      if FReturnCode = 0 then
+
+      if (FLocalRevision = FRET_UNKNOWN_REVISION) then
       begin
-        i:=RPos('/',Output);
-        if (i>0) then Delete(Output,1,i);
-        FLocalRevision := trim(Output)
-      end
-        else FLocalRevision := FRET_UNKNOWN_REVISION; //for compatibility with the svnclient code
+        FReturnCode := TInstaller(Parent).ExecuteCommandInDir(FRepoExecutable,['describe','--tags','--long','--always'],LocalRepository, Output, '', Verbose);
+        if (FReturnCode = 0) then
+        begin
+          // git describe will *always* output the most reasonable revision info,
+          // if it outputs anything at all we can just use it as it is.
+          // if there are any tags in this branch it will output "<tag>-<ahead>-g<hash>"
+          // and if there are no tags then it will just output "<hash>",
+          // both of these are guaranteed to be commit-ish names, usable in other git commands.
+          FLocalRevision := trim(Output);
+        end
+      end;
+
+      if (FLocalRevision = FRET_UNKNOWN_REVISION) then
+      begin
+        FReturnCode := TInstaller(Parent).ExecuteCommandInDir(FRepoExecutable,['log','-g','-1','--pretty=oneline'],LocalRepository, Output, '', Verbose);
+        if (FReturnCode = 0) then
+        begin
+          i:=RPos(' to ',Output);
+          if (i>0) then
+          begin
+            Delete(Output,1,(i+3));
+            // Do we have this format : branchname-xxxx-gxxxx
+            if (OccurrencesOfChar(Output,'-')>=2) then
+              FLocalRevision := trim(Output);
+          end;
+        end
+      end;
+
+      if (FLocalRevision = FRET_UNKNOWN_REVISION) then
+      begin
+        FReturnCode := TInstaller(Parent).ExecuteCommandInDir(FRepoExecutable,['describe','--tags','--all','--long','--always'],LocalRepository, Output, '', Verbose);
+        if (FReturnCode = 0) then
+        begin
+          if (NOT AnsiStartsText('remotes/',Output)) then
+          begin
+            i:=RPos('/',Output);
+            if (i>0) then Delete(Output,1,i);
+            // Do we have this format : branchname-xxxx-gxxxx
+            if (OccurrencesOfChar(Output,'-')>=2) then
+              FLocalRevision := trim(Output);
+          end;
+        end;
+      end;
+
     except
       FLocalRevision := FRET_UNKNOWN_REVISION; //for compatibility with the svnclient code
     end;
@@ -585,6 +748,9 @@ begin
   if ExportOnly then exit;
   if NOT ValidClient then exit;
   if NOT DirectoryExists(LocalRepository) then exit;
+
+  //Output:='';
+  //i:=TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' rev-parse --show-toplevel',LocalRepository, Output, Verbose);
 
   Output:='';
   i:=TInstaller(Parent).ExecuteCommandInDir(DoubleQuoteIfNeeded(FRepoExecutable) + ' log -n 1 --grep=^git-svn-id:',LocalRepository, Output, Verbose);

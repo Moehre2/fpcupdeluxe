@@ -80,6 +80,7 @@ Const
     _GETMODULE+_HELPLAZARUS+_SEP+
     _BUILDMODULE+_HELPLAZARUS+_SEP+
     _CONFIGMODULE+_HELPLAZARUS+_SEP+
+    _BUILDMODULE+_LHELP+_SEP+
     _END+
 
     //Remove Lazarus help:
@@ -163,8 +164,6 @@ end;
 { THelpLazarusInstaller }
 
 THelpLazarusInstaller = class(THelpInstaller)
-private
-  FLazarusPrimaryConfigPath: string;
 protected
   // Build module descendant customisation
   function BuildModuleCustom(ModuleName:string): boolean; override;
@@ -177,7 +176,7 @@ public
   // Install update sources
   function GetModule(ModuleName:string): boolean; override;
   // Configuration for Lazarus; required for configuration
-  property LazarusPrimaryConfigPath: string read FLazarusPrimaryConfigPath write FLazarusPrimaryConfigPath;
+  property LazarusPrimaryConfigPath: string read FLazarusPrimaryConfigPath;
   // Uninstall module
   function UnInstallModule(ModuleName:string): boolean; override;
   constructor Create;
@@ -208,7 +207,9 @@ end;
 function THelpInstaller.InitModule: boolean;
 var
   PlainBinDir: string; //the directory above e.g. c:\development\fpc\bin\i386-win32
-  SVNPath:string;
+  {$IFDEF MSWINDOWS}
+  aPath,s:string;
+  {$ENDIF MSWINDOWS}
 begin
   localinfotext:=Copy(Self.ClassName,2,MaxInt)+' (InitModule): ';
 
@@ -226,17 +227,31 @@ begin
     // at least one ; to be present in the path. If you only have one entry, you
     // can add PathSeparator without problems.
     // https://www.mail-archive.com/fpc-devel@lists.freepascal.org/msg27351.html
-
-    SVNPath:='';
-    if Length(FSVNDirectory)>0
-       then SVNPath:=ExcludeTrailingPathDelimiter(FSVNDirectory)+PathSeparator;
-
+    aPath:='';
+    if Assigned(SVNClient) AND SVNClient.ValidClient then
+    begin
+      s:=SVNClient.RepoExecutable;
+      if (Pos(' ',s)>0) then s:=ExtractShortPathName(s);
+      aPath:=aPath+PathSeparator+ExtractFileDir(s);
+    end;
+    if Assigned(GITClient) AND GITClient.ValidClient then
+    begin
+      s:=GITClient.RepoExecutable;
+      if (Pos(' ',s)>0) then s:=ExtractShortPathName(s);
+      aPath:=aPath+PathSeparator+ExtractFileDir(s);
+    end;
+    if Assigned(HGClient) AND HGClient.ValidClient then
+    begin
+      s:=HGClient.RepoExecutable;
+      if (Pos(' ',s)>0) then s:=ExtractShortPathName(s);
+      aPath:=aPath+PathSeparator+ExtractFileDir(s);
+    end;
     SetPath(
       ExcludeTrailingPathDelimiter(FFPCCompilerBinPath)+PathSeparator+
       PlainBinDir+PathSeparator+
-      FMakeDir+PathSeparator+
-      SVNPath+
-      ExcludeTrailingPathDelimiter(FInstallDirectory),
+      FMakeDir+PathSeparator+PathSeparator+
+      ExcludeTrailingPathDelimiter(InstallDirectory)+
+      aPath,
       false,false);
     {$ENDIF MSWINDOWS}
     {$IFDEF UNIX}
@@ -305,10 +320,13 @@ var
   i: longint;
   HelpUrl:string;
   LazarusVersion:string;
+  RunTwice:boolean;
 begin
   result:=inherited;
   result:=InitModule;
   if not result then exit;
+
+  OperationSucceeded:=false;
 
   if FileExists(FTargetDirectory+'fcl.chm') and
     FileExists(FTargetDirectory+'rtl.chm') then
@@ -358,46 +376,20 @@ begin
       end;
     end;
 
-    if Length(HelpUrl)=0 then
-    begin
-      //Help version determination failed totally.
-      //Get help from latest !!
-      //HelpUrl:=HELPSOURCEURL[High(HELPSOURCEURL),1];
-      HelpUrl:=CHM_URL_LATEST_SVN;
-    end;
-
     ForceDirectoriesSafe(ExcludeTrailingPathDelimiter(FTargetDirectory));
-
-    if (HelpUrl=CHM_URL_LATEST_SVN) then
-    begin
-      result:=SimpleExportFromSVN(ModuleName,HelpUrl,FTargetDirectory);
-      if (NOT result) then Infoln(ModuleName+': SVN download documents failed. URL: '+HelpUrl, etWarning);
-      result:=true;
-      exit;
-    end;
-
     DocsZip := GetTempFileNameExt('FPCUPTMP','zip');
 
-    OperationSucceeded:=true;
-
-    try
-      OperationSucceeded:=Download(FUseWget, HELP_URL_BASE+HelpUrl+'/download', DocsZip);
-    except
-      on E: Exception do
-      begin
-        // Deal with timeouts, wrong URLs etc
-        OperationSucceeded:=false;
-        Infoln(ModuleName+': Download documents failed. URL: '+HELP_URL_BASE+HelpUrl+LineEnding+
-          'Exception: '+E.ClassName+'/'+E.Message, etWarning);
-      end;
-    end;
-
-    if NOT OperationSucceeded then
+    for RunTwice in boolean do
     begin
-      //Try again
+      if OperationSucceeded then break;
       SysUtils.DeleteFile(DocsZip); //Get rid of temp zip
       try
-        OperationSucceeded:=Download(FUseWget, HELP_URL_BASE+HelpUrl+'/download', DocsZip);
+        if Length(HelpUrl)=0 then
+          //Help version determination failed totally.
+          //Get help from latest !!
+          OperationSucceeded:=Download(FUseWget, LAZARUSGITLABBINARIES+'/-/archive/'+LAZARUSTRUNKBRANCH+'/binaries-main.zip?path=docs/chm', DocsZip)
+        else
+          OperationSucceeded:=Download(FUseWget, HELP_URL_BASE+HelpUrl+'/download', DocsZip);
       except
         on E: Exception do
         begin
@@ -409,26 +401,9 @@ begin
       end;
     end;
 
-    if NOT OperationSucceeded then
+    for RunTwice in boolean do
     begin
-      //Try again with alternative URL
-      SysUtils.DeleteFile(DocsZip); //Get rid of temp zip
-      try
-        OperationSucceeded:=Download(FUseWget, HELP_URL_BASE_ALTERNATIVE+HelpUrl, DocsZip);
-      except
-        on E: Exception do
-        begin
-          // Deal with timeouts, wrong URLs etc
-          OperationSucceeded:=false;
-          Infoln(ModuleName+': Download documents failed. URL: '+HELP_URL_BASE_ALTERNATIVE+HelpUrl+LineEnding+
-            'Exception: '+E.ClassName+'/'+E.Message, etWarning);
-        end;
-      end;
-    end;
-
-    if NOT OperationSucceeded then
-    begin
-      //Try a second time with alternative URL
+      if OperationSucceeded then break;
       SysUtils.DeleteFile(DocsZip); //Get rid of temp zip
       try
         OperationSucceeded:=Download(FUseWget, HELP_URL_BASE_ALTERNATIVE+HelpUrl, DocsZip);
@@ -527,7 +502,7 @@ begin
   if inherited InitModule then
   begin
     //todo: check with FreeVision FPCIDE to see if this is a sensible location.
-    FTargetDirectory:=IncludeTrailingPathDelimiter(FInstallDirectory)+
+    FTargetDirectory:=IncludeTrailingPathDelimiter(InstallDirectory)+
       'doc'+DirectorySeparator+
       'ide'+DirectorySeparator; ;
     Infoln(infotext+'Documentation directory: '+FTargetDirectory,etInfo);
@@ -659,7 +634,7 @@ begin
           // Check for valid lazbuild.
           // Note: we don't check if we have a valid primary config path, but that will come out
           // in the next steps.
-          LazbuildApp:=IncludeTrailingPathDelimiter(FInstallDirectory)+LAZBUILDNAME+GetExeExt;
+          LazbuildApp:=IncludeTrailingPathDelimiter(InstallDirectory)+LAZBUILDNAME+GetExeExt;
           if CheckExecutable(LazbuildApp, ['--help'],LAZBUILDNAME)=false then
           begin
             WritelnLog(ModuleName+': No valid lazbuild executable found. Aborting.', true);
@@ -814,11 +789,11 @@ begin
   begin
     // This must be the directory of the build_lcl_docs project, otherwise
     // build_lcl_docs will fail; at least it won't pick up the FPC help files for cross references
-    FTargetDirectory:=IncludeTrailingPathDelimiter(FInstallDirectory)+
+    FTargetDirectory:=IncludeTrailingPathDelimiter(InstallDirectory)+
       'docs'+DirectorySeparator+
       'chm'+DirectorySeparator;
     Infoln('helplazarus: documentation directory: '+FTargetDirectory,etInfo);
-    FBuildLCLDocsExeDirectory:=IncludeTrailingPathDelimiter(FInstallDirectory)+
+    FBuildLCLDocsExeDirectory:=IncludeTrailingPathDelimiter(InstallDirectory)+
       'docs'+DirectorySeparator+
       'html'+DirectorySeparator;
     Infoln(localinfotext+'FBuildLCLDocsExeDirectory: '+FTargetDirectory,etDebug);

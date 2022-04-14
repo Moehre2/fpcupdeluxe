@@ -2,54 +2,46 @@ unit fpcupdeluxemainform;
 
 {$mode objfpc}{$H+}
 
+{$i fpcupdefines.inc}
+
 interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   ExtCtrls, Types, Buttons, Menus, ComCtrls,
+  {$ifndef READER}
   SynEdit, SynEditMiscClasses, SynEditPopup,
+  {$endif}
+  LMessages, ActnList, StdActns, IniPropStorage, LCLVersion,
+  {$ifdef RemoteLog}
+  mormotdatamodelclient,
+  {$endif}
   installerManager
   {$ifdef usealternateui},alternateui{$endif}
-  ,LMessages
-  ,LCLVersion, ActnList, StdActns, IniPropStorage
-  {$ifdef RemoteLog}
-  ,mormotdatamodelclient
-  {$endif}
   ;
 
-{$IF DEFINED(lcl_fullversion) AND (lcl_fullversion >= 2010000)}
+//{$ifdef lcl_fullversion}
+{$if lcl_fullversion>2010000}
 {$define EnableLanguages}
 {$endif}
+//{$endif}
 
 const
   WM_THREADINFO = LM_USER + 2010;
 
 type
-  TSynEditHelper = class helper for TCustomSynEdit
-    procedure SetFiltered(line: string); inline;
-  end;
-
-
   { TForm1 }
 
   TForm1 = class(TForm)
     ActionList1: TActionList;
+    btnCheckToolsLocations: TButton;
     chkGitlab: TCheckBox;
     imgSVN: TImage;
     imgGitlab: TImage;
     ListBoxFPCHistory: TListView;
     ListBoxLazarusHistory: TListView;
-    OPMBtn: TBitBtn;
-    BitBtnFPCSetRevision: TBitBtn;
-    BitBtnLazarusSetRevision: TBitBtn;
     btnCreateLazarusConfig: TButton;
     ButtonSubarchSelect: TButton;
-    BitBtnFPCandLazarus: TBitBtn;
-    BitBtnFPCOnly: TBitBtn;
-    BitBtnFPCOnlyTag: TBitBtn;
-    BitBtnHalt: TBitBtn;
-    BitBtnLazarusOnly: TBitBtn;
-    BitBtnLazarusOnlyTag: TBitBtn;
     btnSendLog: TButton;
     btnUpdateLazarusMakefiles: TButton;
     btnInstallModule: TButton;
@@ -66,16 +58,8 @@ type
     ChkMakefileLaz: TButton;
     actFileExit: TFileExit;
     actFileSave: TFileSaveAs;
-    FPCHistoryLabel: TLabel;
     HistorySheet: TTabSheet;
-    LazarusHistoryLabel: TLabel;
-    MemoHistory: TMemo;
-    WioBtn: TBitBtn;
-    FPCVersionLabel: TLabel;
-    FPCTagLabel: TLabel;
     IniPropStorageApp: TIniPropStorage;
-    LazarusVersionLabel: TLabel;
-    LazarusTagLabel: TLabel;
     ListBoxFPCTarget: TListBox;
     ListBoxFPCTargetTag: TListBox;
     ListBoxLazarusTarget: TListBox;
@@ -86,7 +70,6 @@ type
     MemoAddTag: TMemo;
     memoSummary: TMemo;
     MenuItem1: TMenuItem;
-    PicoBtn: TBitBtn;
     MenuItem2: TMenuItem;
     MEnglishlanguage: TMenuItem;
     MChineseCNlanguage: TMenuItem;
@@ -96,11 +79,12 @@ type
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
     MFPCBugs: TMenuItem;
+    MKoreanlanguage: TMenuItem;
     MLazarusBugs: TMenuItem;
     MIssuesGitHub: TMenuItem;
     MIssuesForum: TMenuItem;
-    UltiboBtn: TBitBtn;
     PageControl1: TPageControl;
+    ESPBtn: TBitBtn;
     radgrpCPU: TRadioGroup;
     radgrpOS: TRadioGroup;
     StatusMessage: TEdit;
@@ -109,28 +93,80 @@ type
     ModuleSheet: TTabSheet;
     ExtraSheet: TTabSheet;
     TagSheet: TTabSheet;
-    TrunkBtn: TBitBtn;
-    FixesBtn: TBitBtn;
-    StableBtn: TBitBtn;
-    AndroidBtn: TBitBtn;
-    mORMotBtn: TBitBtn;
     btnInstallDirSelect: TButton;
     InstallDirEdit: TEdit;
     Panel1: TPanel;
     RealFPCURL: TEdit;
     RealLazURL: TEdit;
+    MemoHistory: TMemo;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
+    {$ifdef READER}
+    CommandOutputScreen: TMemo;
+    FPCVersionLabel: TStaticText;
+    LazarusVersionLabel: TStaticText;
+    FPCHistoryLabel: TStaticText;
+    LazarusHistoryLabel: TStaticText;
+    FPCTagLabel: TStaticText;
+    LazarusTagLabel: TStaticText;
+    TrunkBtn: TButton;
+    FixesBtn: TButton;
+    StableBtn: TButton;
+    AndroidBtn: TButton;
+    Win95Btn: TButton;
+    WioBtn: TButton;
+    PicoBtn: TButton;
+    UltiboBtn: TButton;
+    mORMotBtn: TButton;
+    BitBtnHalt: TButton;
+    BitBtnFPCandLazarus: TButton;
+    BitBtnFPCOnly: TButton;
+    BitBtnFPCOnlyTag: TButton;
+    BitBtnLazarusOnly: TButton;
+    BitBtnLazarusOnlyTag: TButton;
+    BitBtnFPCSetRevision: TButton;
+    BitBtnLazarusSetRevision: TButton;
+    OPMBtn: TButton;
+    {$else}
     CommandOutputScreen: TSynEdit;
+    FPCVersionLabel: TLabel;
+    LazarusVersionLabel: TLabel;
+    FPCHistoryLabel: TLabel;
+    LazarusHistoryLabel: TLabel;
+    FPCTagLabel: TLabel;
+    LazarusTagLabel: TLabel;
+    TrunkBtn: TBitBtn;
+    FixesBtn: TBitBtn;
+    StableBtn: TBitBtn;
+    AndroidBtn: TBitBtn;
+    Win95Btn: TBitBtn;
+    WioBtn: TBitBtn;
+    PicoBtn: TBitBtn;
+    UltiboBtn: TBitBtn;
+    mORMotBtn: TBitBtn;
+    BitBtnHalt: TBitBtn;
+    BitBtnFPCandLazarus: TBitBtn;
+    BitBtnFPCOnly: TBitBtn;
+    BitBtnFPCOnlyTag: TBitBtn;
+    BitBtnLazarusOnly: TBitBtn;
+    BitBtnLazarusOnlyTag: TBitBtn;
+    BitBtnFPCSetRevision: TBitBtn;
+    BitBtnLazarusSetRevision: TBitBtn;
+    OPMBtn: TBitBtn;
+    {$endif}
     procedure actFileSaveAccept({%H-}Sender: TObject);
     procedure BitBtnSetRevisionClick(Sender: TObject);
+    procedure btnCheckToolsLocationsClick(Sender: TObject);
     procedure btnUpdateLazarusMakefilesClick({%H-}Sender: TObject);
     procedure ButtonSubarchSelectClick({%H-}Sender: TObject);
     procedure chkGitlabChange(Sender: TObject);
     procedure IniPropStorageAppRestoringProperties({%H-}Sender: TObject);
     procedure IniPropStorageAppSavingProperties({%H-}Sender: TObject);
+    procedure ListBoxTargetDrawItem(Control: TWinControl; Index: Integer;
+      ARect: TRect; State: TOwnerDrawState);
+    procedure MKoreanlanguageClick(Sender: TObject);
     procedure radgrpTargetChanged({%H-}Sender: TObject);
     procedure TagSelectionChange(Sender: TObject;{%H-}User: boolean);
-    procedure OnlyTagClick(Sender: TObject);
+    procedure OnlyTagClick({%H-}Sender: TObject);
     procedure InstallClick(Sender: TObject);
     procedure BitBtnHaltClick({%H-}Sender: TObject);
     procedure btnGetOpenSSLClick({%H-}Sender: TObject);
@@ -157,11 +193,10 @@ type
     procedure MIssuesGitHubClick({%H-}Sender: TObject);
     procedure MLazarusBugsClick({%H-}Sender: TObject);
     procedure PageControl1Change(Sender: TObject);
-    procedure RealURLChange(Sender: TObject);
-    procedure RealURLDblClick(Sender: TObject);
-    procedure CommandOutputScreenChange({%H-}Sender: TObject);
+    {$ifndef READER}
     procedure CommandOutputScreenSpecialLineMarkup({%H-}Sender: TObject; Line: integer;
       var Special: boolean; Markup: TSynSelectedColor);
+    {$endif}
     procedure TargetSelectionChange(Sender: TObject; User: boolean);
     procedure MenuItem1Click({%H-}Sender: TObject);
     procedure CommandOutputScreenMouseWheel({%H-}Sender: TObject; Shift: TShiftState;
@@ -193,9 +228,11 @@ type
     {$endif}
     procedure HandleInfo(var Msg: TLMessage); message WM_THREADINFO;
     procedure InitFpcupdeluxe({%H-}Data: PtrInt=0);
+    procedure ScrollToSelected({%H-}Data: PtrInt=0);
     {$ifdef RemoteLog}
     procedure InitConsent({%H-}Data: PtrInt=0);
     {$endif}
+    procedure ProcessInfo(Sender: TObject);
     procedure InitShortCuts;
     procedure CheckForUpdates({%H-}Data: PtrInt=0);
     function  AutoUpdateCrossCompiler(Sender: TObject):boolean;
@@ -203,7 +240,7 @@ type
     procedure SetLazarusTarget(aLazarusTarget:string);
     procedure DisEnable({%H-}Sender: TObject;value:boolean);
     procedure Edit1Change({%H-}Sender: TObject);
-    procedure PrepareRun;
+    function  PrepareRun(Sender: TObject):boolean;
     function  RealRun:boolean;
     function  GetFPCUPSettings(IniDirectory:string):boolean;
     function  SetFPCUPSettings(IniDirectory:string):boolean;
@@ -213,6 +250,8 @@ type
     procedure InitFPCupManager;
     function  GetCmdFontSize:integer;
     procedure SetCmdFontSize(aValue:integer);
+    function GetCmdFontName: String;
+    procedure SetCmdFontName(aValue: String);
     procedure ParseRevisions(IniDirectory:string);
     {$ifndef usealternateui}
     property  FPCTarget:string read FFPCTarget write SetFPCTarget;
@@ -226,7 +265,8 @@ type
     {$endif}
 
   published
-    property CmdFontSize: integer read GetCmdFontSize write SetCmdFontSize;
+    property CmdFontSize: Integer read GetCmdFontSize write SetCmdFontSize;
+    property CmdFontName: String read GetCmdFontName write SetCmdFontName;
   end;
 
 resourcestring
@@ -244,7 +284,11 @@ var
 
 implementation
 
-{$R *.lfm}
+{$ifdef READER}
+  {$R fpcupdeluxemainformreader.lfm}
+{$else}
+  {$R fpcupdeluxemainform.lfm}
+{$endif}
 
 uses
   InterfaceBase, // for WidgetSet
@@ -264,6 +308,7 @@ uses
   extrasettings,
   subarch,
   modulesettings,
+  DPB.Forms.Sequencial,
   //checkoptions,
   installerCore,
   installerUniversal,
@@ -274,31 +319,9 @@ uses
 
 //{$I message.inc}
 
-
-procedure TSynEditHelper.SetFiltered(line: string);
+function NaturalCompare(aList: TStringList; aIndex1, aIndex2: Integer): Integer;
 begin
-  // skip stray empty lines
-  //if (Length(line)=0) then exit;
-
-  {$ifdef Darwin}
-  // suppress all setfocus errors on Darwin, always
-  if AnsiContainsText(line,'.setfocus') then exit;
-  {$endif}
-
-  // suppress all SynEdit PaintLock errors, always
-  if AnsiContainsText(line,'PaintLock') then exit;
-
-  {$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION > 30000)}
-  Self.Append(line);
-  {$ELSE}
-  Self.Lines.Append(line);
-  {$ENDIF}
-  Self.CaretX:=0;
-  Self.CaretY:=Self.Lines.Count;
-  // the below is needed:
-  // onchange is no longer called, when appending a line ... bug or feature ?!!
-  Self.OnChange(Self);
-  //Application.ProcessMessages;
+  Result := NaturalCompareText(aList[aIndex2], aList[aIndex1]);
 end;
 
 { TForm1 }
@@ -350,11 +373,13 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 var
   IniFilesOk:boolean;
-  aTarget:string;
+  aSystemTarget:string;
+  aFPCTarget,aLazarusTarget:string;
+  bGitlab:boolean;
 begin
   MessageTrigger:=false;
 
-  IniPropStorageApp.IniFileName:=IncludeTrailingPathDelimiter(SafeGetApplicationPath)+installerUniversal.DELUXEFILENAME;
+  IniPropStorageApp.IniFileName:=SafeGetApplicationPath+installerUniversal.DELUXEFILENAME;
 
   {$ifdef EnableLanguages}
   sLanguage:='en';
@@ -365,6 +390,11 @@ begin
   {$IF defined(LCLQT) OR defined(LCLQT5)}
   // due to a bugger in QT[5]
   Self.Position:=poDesigned;
+  {$endif}
+
+  {$ifdef Darwin}
+  CmdFontSize:=-11;
+  CmdFontName:='Courier New';
   {$endif}
 
   {$ifdef RemoteLog}
@@ -407,13 +437,13 @@ begin
   *)
 
   {$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION > 30000)}
-  aTarget:=GetLCLWidgetTypeName;
+  aSystemTarget:=GetLCLWidgetTypeName;
   {$ELSE}
   aTarget:='';
   {$ENDIF}
 
   {$ifdef RemoteLog}
-  aDataClient.UpInfo.UpWidget:=aTarget;
+  aDataClient.UpInfo.UpWidget:=aSystemTarget;
   {$endif}
 
   Self.Caption:=
@@ -426,7 +456,7 @@ begin
     ' for ' +
     GetTargetCPUOS+
     '-'+
-    aTarget;
+    aSystemTarget;
 
   sStatus:='Sitting and waiting';
 
@@ -445,7 +475,7 @@ begin
 
   //Prevent overwriting an existing install when starting with a new fpcupdeluxe install
   If DirectoryExists(sInstallDir) then
-    sInstallDir:=IncludeTrailingPathDelimiter(SafeGetApplicationPath)+'fpcupdeluxe';
+    sInstallDir:=SafeGetApplicationPath+'fpcupdeluxe';
 
   {$ifdef DARWIN}
   // we could have started from with an .app , so goto the basedir ... not sure if realy needed, but to be sure.
@@ -456,10 +486,34 @@ begin
     AddMessage('Current base directory : '+GetCurrentDir);
   {$endif}
 
+  aFPCTarget:='';
+  aLazarusTarget:='';
+  bGitlab:=true;
+
   // get last used install directory, proxy and visual settings
   with TIniFile.Create(SafeGetApplicationPath+installerUniversal.DELUXEFILENAME) do
   try
     sInstallDir:=ReadString('General','InstallDirectory',sInstallDir);
+
+    // Read default FPC and Lazarus target from settings in app directory
+    // Will be overwritten by settings in install directory if needed.
+    bGitlab:=ReadBool('General','Gitlab',bGitlab);
+    aFPCTarget:=ReadString('General','fpcVersion','');
+    if (Length(aFPCTarget)=0) then
+    begin
+      aFPCTarget:='stable'+GITLABEXTENSION;
+    end;
+    aLazarusTarget:=ReadString('General','lazVersion','');
+    if (Length(aLazarusTarget)=0) then
+    begin
+      aLazarusTarget:='stable'+GITLABEXTENSION;
+      {$ifdef Haiku}
+      {$ifdef CPUX86_64}
+      aLazarusTarget:='trunk'+GITLABEXTENSION;
+      {$endif}
+      {$endif}
+    end;
+
     {$ifdef EnableLanguages}
     sLanguage:=ReadString('General','Language',sLanguage);
     {$endif}
@@ -476,13 +530,12 @@ begin
     AND
     (SetConfigFile(SafeGetApplicationPath+installerUniversal.CONFIGFILENAME));
 
-  aTarget:='';
+  aSystemTarget:='';
   if IniFilesOk then
   begin
     sInstallDir:=ExcludeTrailingPathDelimiter(SafeExpandFileName(sInstallDir));
 
     InstallDirEdit.Text:=sInstallDir;
-
     // set InstallDirEdit (installdir) onchange here, to prevent early firing
     InstallDirEdit.OnChange:=nil;
     InstallDirEdit.OnKeyUp:=nil;
@@ -494,12 +547,18 @@ begin
     {$endif}
     if InstallDirEdit.OnKeyUp=nil then InstallDirEdit.OnChange:=@Edit1Change;
 
+    if (chkGitlab.Checked<>bGitlab) then chkGitlab.Checked:=bGitlab;
+    if (Length(aFPCTarget)>0) then FPCTarget:=aFPCTarget;
+    if (Length(aLazarusTarget)>0) then LazarusTarget:=aLazarusTarget;
+    FillSourceListboxes;
+
     // create settings form
     // must be done here, to enable local storage/access of some setttings !!
     Form2:=TForm2.Create(Form1);
     Form3:=TForm3.Create(Form1);
     SubarchForm:=TSubarchForm.Create(Form1);
     InitFpcupdeluxe;
+    Application.QueueAsyncCall(@ScrollToSelected,0);
     {$ifdef RemoteLog}
     Application.QueueAsyncCall(@InitConsent,0);
     {$endif}
@@ -569,541 +628,19 @@ begin
 {$ENDIF}
 end;
 
-procedure TForm1.LazarusVersionLabelClick(Sender: TObject);
-begin
-  if MessageTrigger then
-  begin
-    MessageTrigger:=false;
-    //Application.MessageBox(PChar(LOVEANDLIES),PChar(LOVEANDLIESHEADER), MB_ICONEXCLAMATION);
-  end;
-end;
-
-procedure TForm1.listModulesSelectionChange(Sender: TObject; User: boolean);
-var
-  Index : integer;
-  Item : string;
-  aList:TListBox;
-  aObject:TObject;
-begin
-  if (NOT User) then exit;
-  aList:=TListBox(Sender);
-  Memo1.Text:='';
-  Index:=aList.ItemIndex;
-  aObject:=aList.Items.Objects[Index];
-  if Assigned(aObject) then
-  begin
-    Item:=PChar(aObject);
-    Memo1.Text:=Item;
-  end;
-end;
-
-
-procedure TForm1.listModulesShowHint(Sender: TObject; HintInfo: PHintInfo);
-var
-  Index : integer;
-  Item : string;
-  aList:TListBox;
-  aObject:TObject;
-begin
-  aList:=TListBox(Sender);
-  Index:=aList.ItemAtPos(HintInfo^.CursorPos, True);
-  if (HintInfo^.HintControl=aList) and (Index > -1) then
-  begin
-    aObject:=aList.Items.Objects[Index];
-    if Assigned(aObject) then
-    begin
-      Item:=PChar(aObject);
-      HintInfo^.HintStr:=Item;
-      HintInfo^.CursorRect:=aList.ItemRect(Index);
-    end;
-  end;
-end;
-
-procedure TForm1.MChineseCNlanguageClick(Sender: TObject);
-begin
-  {$ifdef EnableLanguages}
-  sLanguage:='zh';
-  TransLate(sLanguage);
-  {$endif}
-end;
-
-procedure TForm1.MEnglishlanguageClick(Sender: TObject);
-begin
-  {$ifdef EnableLanguages}
-  sLanguage:='en';
-  TransLate(sLanguage);
-  {$endif}
-end;
-
-procedure TForm1.MFPCBugsClick(Sender: TObject);
-begin
-  OpenURL('https://bugs.freepascal.org/my_view_page.php');
-end;
-
-procedure TForm1.MIssuesForumClick(Sender: TObject);
-begin
-  OpenURL('https://forum.lazarus.freepascal.org/index.php/topic,34645.0.html');
-end;
-
-procedure TForm1.MIssuesGitHubClick(Sender: TObject);
-begin
-  OpenURL('https://github.com/LongDirtyAnimAlf/fpcupdeluxe/issues');
-end;
-
-procedure TForm1.MLazarusBugsClick(Sender: TObject);
-begin
-  OpenURL('https://bugs.freepascal.org/view_all_bug_page.php?project_id=1');
-end;
-
-procedure TForm1.RealURLChange(Sender: TObject);
-begin
-  SetTarget(TEdit(Sender));
-end;
-
-procedure TForm1.RealURLDblClick(Sender: TObject);
-begin
-  TEdit(Sender).Color:=clRed;
-  TEdit(Sender).ReadOnly:=false;
-end;
-
-procedure TForm1.ButtonAutoUpdateCrossCompiler(Sender: TObject);
-begin
-  AutoUpdateCrossCompiler(Sender);
-end;
-
-function TForm1.AutoUpdateCrossCompiler(Sender: TObject):boolean;
-var
-  FPCCfg:string;
-  BinPath:string;
-  ConfigText: TStringList;
-  aCPU, aOS: string;
-  aTCPU:TCPU;
-  aTOS:TOS;
-  aTSUBARCH:TSUBARCH;
-  Subarchs:TSUBARCHS;
-  RebuildSubarchs:TSUBARCHS;
-  CheckAutoClearStore:boolean;
-  success:boolean;
-  SnipBegin,SnipEnd: integer;
-  i:integer;
-  s,aResultMessage:string;
-begin
-  aOS := GetTargetOS;
-  aCPU := GetTargetCPU;
-
-  aTCPU:=TCPU.cpuNone;
-  aTOS:=TOS.osNone;
-  aTSUBARCH:=TSUBARCH.saNone;
-
-  //BinPath:=ConcatPaths([FPCupManager.FPCInstallDirectory,'bin',aCPU+'-'+aOS]);
-  BinPath:=ConcatPaths([sInstallDir,'fpc','bin',aCPU+'-'+aOS]);
-
-  FPCCfg := IncludeTrailingPathDelimiter(BinPath) + FPCCONFIGFILENAME;
-
-  result:=false;
-
-  if NOT FileExists(FPCCfg) then
-  begin
-    if (Sender<>nil) then AddMessage('FPC configfile ['+FPCCONFIGFILENAME+'] not found in ' + BinPath);
-    exit;
-  end;
-
-  if (Sender<>nil) then
-  begin
-    s:='Going to update all crosscompilers !' + sLineBreak +
-       'Do you want to continue ?';
-    if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
-    begin
-      exit;
-    end;
-  end;
-
-  if (Sender<>nil) then
-  begin
-
-    CheckAutoClearStore:=CheckAutoClear.Checked;
-    if CheckAutoClearStore then btnClearLog.Click;
-    CheckAutoClear.Checked:=false;
-
-    memoSummary.Lines.Append(upBuildAllCrossCompilers);
-    memoSummary.Lines.Append(upBuildAllCrossCompilersCheck + BinPath);
-    memoSummary.Lines.Append('');
-
-  end
-  else
-  begin
-    memoSummary.Clear;
-  end;
-
-  success:=true;
-
-  aResultMessage:='No cross-compilers found. Nothing to do !';
-
-  ConfigText:=TStringList.Create;
-  try
-    ConfigText.LoadFromFile(FPCCFG);
-
-    SnipBegin:=0;
-    SnipEnd:=0;
-    while ((SnipBegin<>-1) AND (SnipEnd<>-1) AND (SnipBegin<ConfigText.Count)) do
-    begin
-      SnipBegin:=StringListStartsWith(ConfigText,SnipMagicBegin,SnipEnd);
-      SnipEnd:=-1;
-      if (SnipBegin<>-1) then
-      begin
-        SnipEnd:=SnipBegin+1;
-        if (Pos('-',ConfigText.Strings[SnipBegin])>0) then
-          SnipEnd:=StringListSame(ConfigText,SnipMagicEnd,SnipEnd)
-      end;
-
-
-      if (SnipBegin<>-1) AND (SnipEnd<>-1) then
-      begin
-        s:=ConfigText.Strings[SnipBegin];
-        Delete(s,1,Length(SnipMagicBegin));
-        i:=Pos('-',s);
-        if (i>0) then
-        begin
-          aCPU:=Copy(s,1,i-1);
-          aOS:=Trim(Copy(s,i+1,MaxInt));
-
-          aTCPU:=GetTCPU(aCPU);
-          aTOS:=GetTOS(aOS);
-
-          // try to distinguish between different Solaris versons
-          if (aTOS=TOS.solaris) then
-          begin
-            for i:=SnipBegin to SnipEnd do
-            begin
-              s:=ConfigText.Strings[i];
-              if (Pos('-FD',s)>0) AND (Pos('-solaris-oi',s)>0) then
-              begin
-                aOS:='solaris-oi';
-                break;
-              end;
-            end;
-          end;
-
-          // try to distinguish between different Linux versons
-          if (aTOS=TOS.linux) then
-          begin
-            for i:=SnipBegin to SnipEnd do
-            begin
-              s:=ConfigText.Strings[i];
-              if (Pos('-FD',s)>0) AND (Pos('-musllinux',s)>0) then
-              begin
-                aOS:='linux-musl';
-                break;
-              end;
-            end;
-          end;
-
-          if aTCPU=TCPU.powerpc then aCPU:='ppc';
-          if aTCPU=TCPU.powerpc64 then aCPU:='ppc64';
-          if aTOS=TOS.iphonesim then aOS:='i-sim';
-          if ( (aTOS=TOS.win32) or (aTOS=TOS.win64) ) then aOS:='windows';
-
-          // Get subarchs
-          RebuildSubarchs:=[TSUBARCH.saNone];
-          Subarchs:=GetSubarchs(aTCPU,aTOS);
-          for aTSUBARCH in Subarchs do
-          begin
-            if (aTSUBARCH=saNone) then continue;
-            for i:=(SnipBegin+6) to (SnipEnd-2) do
-            begin
-              s:=ConfigText.Strings[i];
-              if (s='#IFDEF CPU'+UpperCase(GetSubarch(aTSUBARCH))) then
-                Include(RebuildSubarchs,aTSUBARCH);
-            end;
-          end;
-
-          for aTSUBARCH in RebuildSubarchs do
-          begin
-            if (Sender=nil) then
-              Form2.SetCrossAvailable(aTCPU,aTOS,aTSubArch,true);
-
-            // Only build for subarch if we do have subarchs
-            if (aTOS in SUBARCH_OS) AND (aTCPU in SUBARCH_CPU) AND (aTSUBARCH=saNone) then continue;
-
-            if aTSUBARCH=saNone then
-              AddMessage(upBuildAllCrossCompilersFound+aCPU + '-' + aOS)
-            else
-              AddMessage(upBuildAllCrossCompilersFound+aCPU + '-' + aOS+ '-' + GetSubarch(aTSUBARCH));
-
-            // build compiler
-            if (Sender<>nil) then
-            begin
-              CommandOutputScreen.ClearAll;
-              aResultMessage:='Finished building of cross-compilers.';
-              AddMessage(upBuildAllCrossCompilersUpdate);
-
-              // Set subarch
-              SetSelectedSubArch(aTCPU,aTOS,aTSUBARCH);
-
-              // Set CPU and OS
-              radgrpCPU.ItemIndex:=radgrpCPU.Items.IndexOf(aCPU);
-              radgrpOS.ItemIndex:=radgrpOS.Items.IndexOf(aOS);
-
-              // Build !!
-              success:=ButtonProcessCrossCompiler(nil);
-
-              if success
-                then memoSummary.Lines.Append('Cross-compiler update ok.')
-                else memoSummary.Lines.Append('Failure during update of cross-compiler !!');
-              memoSummary.Lines.Append('');
-              if (NOT success) then
-              begin
-                aResultMessage:='Building of cross-compilers ended with some error(s).';
-                break;
-              end;
-            end;
-          end;
-        end;
-      end;
-    end;
-
-    if (Sender<>nil) then
-    begin
-      radgrpCPU.ItemIndex:=-1;
-      radgrpOS.ItemIndex:=-1;
-      CheckAutoClear.Checked:=CheckAutoClearStore;
-    end;
-
-  finally
-    ConfigText.Free;
-  end;
-
-  result:=success;
-
-  if (Sender<>nil) then
-  begin
-    AddMessage('');
-    AddMessage(aResultMessage,True);
-  end;
-end;
-
-procedure TForm1.InitFPCupManager;
-var
-  SortedModules: TStringList;
-  i:integer;
-  s,v:string;
-  SettingsSuccess:boolean;
-begin
-  FPCupManager:=TFPCupManager.Create;
-  FPCupManager.ConfigFile:=SafeGetApplicationPath+installerUniversal.CONFIGFILENAME;
-
-  FPCupManager.LoadFPCUPConfig;
-
-  FPCupManager.FPCURL:='stable';
-  FPCupManager.LazarusURL:='stable';
-
-  FPCupManager.Verbose:=false;
-
-  //CheckFPCUPOptions(FPCupManager);
-
-  if listModules.Count=0 then
-  begin
-    SortedModules:=TStringList.Create;
-    try
-      SortedModules.Delimiter:=_SEP;
-      SortedModules.StrictDelimiter:=true;
-      SortedModules.DelimitedText:=GetModuleList;
-      // filter modulelist from trivial entries
-      for i:=(SortedModules.Count-1) downto 0 do
-      begin
-        s:=SortedModules[i];
-        if Pos(_DECLARE,s)=0 then
-        begin
-          SortedModules.Delete(i);
-          continue;
-        end;
-        if (AnsiStartsText(_DECLARE+_SUGGESTED,s)) OR (AnsiStartsText(_DECLARE+_SUGGESTEDADD,s)) then
-        begin
-          SortedModules.Delete(i);
-          continue;
-        end;
-        if (AnsiEndsText(_CLEAN,s)) OR (AnsiEndsText(_UNINSTALL,s)) OR (AnsiEndsText(_BUILD+_ONLY,s)) then
-        begin
-          SortedModules.Delete(i);
-          continue;
-        end;
-      end;
-      SortedModules.Sort;
-      for i:=0 to (SortedModules.Count-1) do
-      begin
-        s:=SortedModules[i];
-        Delete(s,1,Length(_DECLARE));
-        // get module descriptions
-        v:=FPCupManager.ModulePublishedList.Values[s];
-        // add to list
-        listModules.Items.AddObject(s,TObject(pointer(StrNew(Pchar(v)))));
-      end;
-    finally
-      SortedModules.Free;
-    end;
-  end;
-
-  FPCupManager.HTTPProxyPort:=Form2.HTTPProxyPort;
-  FPCupManager.HTTPProxyHost:=Form2.HTTPProxyHost;
-  FPCupManager.HTTPProxyUser:=Form2.HTTPProxyUser;
-  FPCupManager.HTTPProxyPassword:=Form2.HTTPProxyPass;
-
-  // localize FPCUPSettings if possible
-
-  SettingsSuccess:=GetFPCUPSettings(IncludeTrailingPathDelimiter(sInstallDir));
-  if (NOT SettingsSuccess) then SettingsSuccess:=GetFPCUPSettings(SafeGetApplicationPath);
-
-  if (SettingsSuccess and DirectoryExists(sInstallDir)) then
-  begin
-    s:=ConcatPaths([sInstallDir,'fpcsrc']);
-    if DirectoryExists(s) then
-      FPCupManager.FPCSourceDirectory:=s;
-    s:=ConcatPaths([sInstallDir,'lazarus']);
-    if DirectoryExists(s) then
-      FPCupManager.LazarusSourceDirectory:=s;
-  end;
-end;
-
-
-procedure TForm1.BitBtnHaltClick(Sender: TObject);
-begin
-  if (MessageDlg('I am going to try to halt.' + sLineBreak +
-             'Do not (yet) expect too much of it.' + sLineBreak +
-             'Its a non-finished feature !'
-             ,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
-             begin
-               exit;
-             end;
-  if Assigned(FPCupManager.Sequencer) then
-  begin
-    FPCupManager.Sequencer.Kill;
-  end;
-end;
-
-procedure TForm1.btnGetOpenSSLClick(Sender: TObject);
-{$ifdef MSWindows}
-var
-  OpenSSLZip,OpenSSLURL:string;
-  Success:boolean;
-  {$endif MSWindows}
-begin
-  {$ifdef MSWindows}
-  OpenSSLURL:=OpenSSLSourceURL[Low(OpenSSLSourceURL)];
-  OpenSSLZip:=IncludeTrailingPathDelimiter(GetWindowsDownloadFolder)+FileNameFromURL(OpenSSLURL);
-  SysUtils.Deletefile(OpenSSLZip);
-  Success:=OpenURL(OpenSSLURL);
-  if (NOT Success) then
-  begin
-    OpenSSLURL:=OpenSSLSourceURL[High(OpenSSLSourceURL)];
-    OpenSSLZip:=IncludeTrailingPathDelimiter(GetWindowsDownloadFolder)+FileNameFromURL(OpenSSLURL);
-    SysUtils.Deletefile(OpenSSLZip);
-    Success:=OpenURL(OpenSSLURL);
-  end;
-  if Success then
-  begin
-    sleep(5000); // give browser some time to finish
-    if FileExists(OpenSSLZip) then
-    begin
-      with TNormalUnzipper.Create do
-      begin
-        try
-          SysUtils.Deletefile(SafeGetApplicationPath+'libeay32.dll');
-          if GetLastOSError<>5 then // no access denied
-          begin
-            SysUtils.Deletefile(SafeGetApplicationPath+'ssleay32.dll');
-            if GetLastOSError<>5 then // no access denied
-            begin
-              if DoUnZip(OpenSSLZip,SafeGetApplicationPath,['libeay32.dll','ssleay32.dll']) then
-              begin
-                AddMessage('Success: got OpenSSL library dll by browser!');
-              end;
-            end;
-          end;
-        finally
-          Free;
-        end;
-      end;
-      SysUtils.Deletefile(OpenSSLZip);
-    end;
-  end;
-  {$endif MSWindows}
-end;
-
-procedure TForm1.btnCreateLazarusConfigClick(Sender: TObject);
-begin
-  PrepareRun;
-  FPCupManager.OnlyModules:=_CONFIG+_LAZARUS;
-  sStatus:='Going to create basic Lazarus config only.';
-  RealRun;
-end;
-
-procedure TForm1.ChkMakefileFPCClick(Sender: TObject);
-begin
-  DisEnable(Sender,False);
-
-  try
-
-    if (Sender=ChkMakefileLaz) OR (Sender=ChkMakefileFPC) then
-    begin
-      PrepareRun;
-      if Sender=ChkMakefileLaz then FPCupManager.OnlyModules:=_MAKEFILECHECKLAZARUS;
-      if Sender=ChkMakefileFPC then FPCupManager.OnlyModules:=_MAKEFILECHECKFPC;
-      sStatus:='Going to check Makefile.';
-      {$ifdef RemoteLog}
-      aDataClient.UpInfo.UpFunction:=ufCheckMakefile;
-      {$endif}
-      RealRun;
-    end;
-
-    if Sender=CreateStartup then
-    begin
-      PrepareRun;
-      FPCupManager.OnlyModules:=_CREATESCRIPT;
-      sStatus:='Going to create startup scripts.';
-      {$ifdef RemoteLog}
-      aDataClient.UpInfo.UpFunction:=ufCreateStartup;
-      {$endif}
-      RealRun;
-    end;
-
-  finally
-    DisEnable(Sender,True);
-  end;
-end;
-
-procedure TForm1.TargetSelectionChange(Sender: TObject; User: boolean);
-begin
-  if (NOT User) then exit;
-  SetTarget(TListBox(Sender));
-end;
-
-procedure TForm1.MenuItem1Click(Sender: TObject);
-begin
-  ShowAboutForm;
-end;
-
-procedure TForm1.CommandOutputScreenMouseWheel(Sender: TObject; Shift: TShiftState;
-  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
-begin
-  {$if defined(Darwin) or defined(macOS) or defined(iphonesim) or defined(ios)}
-  if ssMeta in Shift then
-  {$else}
-  if ssCtrl in Shift then
-  {$endif}
-  //if ssModifier in Shift then // as defined in controls.pp
-  begin
-    if (WheelDelta>0) AND (CommandOutputScreen.Font.Size<48) then CommandOutputScreen.Font.Size:=CommandOutputScreen.Font.Size+1;
-    if (WheelDelta<0)  AND (CommandOutputScreen.Font.Size>2) then CommandOutputScreen.Font.Size:=CommandOutputScreen.Font.Size-1;
-  end;
-end;
-
-procedure TForm1.CommandOutputScreenChange(Sender: TObject);
+procedure TForm1.ProcessInfo(Sender: TObject);
 var
   s,searchstring:string;
   x,y:integer;
+  Lines:TStrings;
 begin
-  s:=CommandOutputScreen.LineText;
-  //if Length(s)=0 then s:=CommandOutputScreen.Lines[CommandOutputScreen.CaretY-2];
+  {$ifdef READER}
+  Lines:=TMemo(Sender).Lines;
+  {$else}
+  Lines:=TSynEdit(Sender).Lines;
+  {$endif}
+
+  s:=Lines[Pred(Lines.Count)];
   s:=Trim(s);
   if Length(s)=0 then exit;
 
@@ -1263,7 +800,7 @@ begin
       InternalError:=Copy(s,x+1,MaxInt);
       memoSummary.Lines.Append('URL: '+InternalError);
       memoSummary.Lines.Append('Please check your connection. Or run the SVN command to try yourself:');
-      memoSummary.Lines.Append(CommandOutputScreen.Lines[CommandOutputScreen.CaretY-2]);
+      memoSummary.Lines.Append(Lines[Pred(Lines.Count)-1]);
     end;
   end;
 
@@ -1317,43 +854,15 @@ begin
         end;
       end;
     end
-    else if (ExistWordInString(PChar(s),'failed to get crossbinutils',[soDown])) then
-    begin
-      if (NOT MissingCrossBins) then memoSummary.Lines.Append('Missing correct cross binary utilities');
-      MissingCrossBins:=true;
-    end
-    else if (ExistWordInString(PChar(s),'failed to get crosslibrary',[soDown])) then
-    begin
-      if (NOT MissingCrossLibs) then memoSummary.Lines.Append('Missing correct cross libraries');
-      MissingCrossLibs:=true;
-    end
-    else if ((ExistWordInString(PChar(s),'CheckAndGetTools',[soDown])) OR (ExistWordInString(PChar(s),'Required package is not installed',[soDown]))) then
-    begin
-      MissingTools:=true;
-      {$ifdef Darwin}
-      memoSummary.Lines.Append('Missing some tools: please install Xcode command line tools !');
-      memoSummary.Lines.Append('xcode-select --install');
-      {$else}
-      memoSummary.Lines.Append('Missing some tools: please install missing tools!');
-      {$endif}
-    end
-    {$ifdef Darwin}
-    else if (ExistWordInString(PChar(s),'The subversion command line tools are no longer provided by Xcode',[soDown])) then
-    begin
-      MissingTools:=true;
-      memoSummary.Lines.Append('SVN is no longer included in Xcode command line tools !');
-      memoSummary.Lines.Append('Use a GIT repo (preferred) or install SVN by yourself (brew).');
-    end
-    {$endif}
     else if (Pos('error: 256',lowercase(s))>0) AND (Pos('svn',lowercase(s))>0) then
     begin
       memoSummary.Lines.Append('We have had a SVN connection failure. Just start again !');
-      memoSummary.Lines.Append(CommandOutputScreen.Lines[CommandOutputScreen.CaretY-2]);
+      memoSummary.Lines.Append(Lines[Pred(Lines.Count)-1]);
     end
     else if (ExistWordInString(PChar(s),'fatal:',[soDown])) then
     begin
       memoSummary.Lines.Append(s);
-      memoSummary.Lines.Append(CommandOutputScreen.Lines[CommandOutputScreen.CaretY-2]);
+      memoSummary.Lines.Append(Lines[Pred(Lines.Count)-1]);
     end
     else if (ExistWordInString(PChar(s),'error:',[soDown])) then
     begin
@@ -1391,6 +900,13 @@ begin
     memoSummary.Lines.Append(BeginSnippet+' Please free some space and re-run fpcupdeluxe.');
   end;
 
+  // GLIBC hardening error
+  if (ExistWordInString(PChar(s),'undefined reference to',[soDown])) AND (ExistWordInString(PChar(s),'libc_csu',[soDown])) then
+  begin
+    memoSummary.Lines.Append(BeginSnippet+' Might be GLIBC>=2.34 hardening error.');
+    memoSummary.Lines.Append(BeginSnippet+' See: https://gitlab.com/freepascal.org/fpc/source/-/issues/39295');
+  end;
+
   // RAM errors
   if (ExistWordInString(PChar(s),'call the assembler',[soDown])) OR (ExistWordInString(PChar(s),'call the resource compiler',[soDown])) then
   begin
@@ -1406,7 +922,7 @@ begin
 
   if ExistWordInString(PChar(s),BeginSnippet,[soWholeWord,soDown]) then
   begin
-    if ExistWordInString(PChar(s),'revision:',[soWholeWord,soDown]) then
+    if ExistWordInString(PChar(s),'revision/hash:',[soWholeWord,soDown]) then
     begin
       // repeat fpcupdeluxe warning
       memoSummary.Lines.Append(s);
@@ -1419,10 +935,10 @@ begin
   end;
 
   // go back a few lines to find a special error case
-  x:=(CommandOutputScreen.CaretY-4);
+  x:=(Pred(Lines.Count)-4);
   if (x>0) then
   begin
-    s:=CommandOutputScreen.Lines[x];
+    s:=Lines[x];
     s:=Trim(s);
     s:=LowerCase(s);
     if Length(s)=0 then exit;
@@ -1436,20 +952,543 @@ begin
     begin
       // print the error itself and the next 2 lines (good or lucky guess)
       memoSummary.Lines.Append(BeginSnippet+' Start of special error summary:');
-      memoSummary.Lines.Append(CommandOutputScreen.Lines[x]);
-      memoSummary.Lines.Append(CommandOutputScreen.Lines[x+1]);
+      memoSummary.Lines.Append(Lines[x]);
+      memoSummary.Lines.Append(Lines[x+1]);
       //temporary for trunk
-      if Pos('BuildUnit_cocoaint.pp',CommandOutputScreen.Lines[x+1])>0 then
+      if Pos('BuildUnit_cocoaint.pp',Lines[x+1])>0 then
       begin
         memoSummary.Lines.Append('');
         memoSummary.Lines.Append('See: https://bugs.freepascal.org/view.php?id=32809');
         memoSummary.Lines.Append('');
-      end else
-      memoSummary.Lines.Append(CommandOutputScreen.Lines[x+2]);
+      end
+      else
+        memoSummary.Lines.Append(Lines[x+2]);
     end;
   end;
 end;
 
+
+procedure TForm1.LazarusVersionLabelClick(Sender: TObject);
+begin
+  if MessageTrigger then
+  begin
+    MessageTrigger:=false;
+    //Application.MessageBox(PChar(LOVEANDLIES),PChar(LOVEANDLIESHEADER), MB_ICONEXCLAMATION);
+  end;
+end;
+
+procedure TForm1.listModulesSelectionChange(Sender: TObject; User: boolean);
+var
+  Index : integer;
+  Item : string;
+  aList:TListBox;
+  aObject:TObject;
+begin
+  if (NOT User) then exit;
+  aList:=TListBox(Sender);
+  Memo1.Text:='';
+  Index:=aList.ItemIndex;
+  aObject:=aList.Items.Objects[Index];
+  if Assigned(aObject) then
+  begin
+    Item:=PChar(aObject);
+    Memo1.Text:=Item;
+  end;
+end;
+
+procedure TForm1.listModulesShowHint(Sender: TObject; HintInfo: PHintInfo);
+var
+  Index : integer;
+  Item : string;
+  aList:TListBox;
+  aObject:TObject;
+begin
+  aList:=TListBox(Sender);
+  Index:=aList.ItemAtPos(HintInfo^.CursorPos, True);
+  if (HintInfo^.HintControl=aList) and (Index > -1) then
+  begin
+    aObject:=aList.Items.Objects[Index];
+    if Assigned(aObject) then
+    begin
+      Item:=PChar(aObject);
+      HintInfo^.HintStr:=Item;
+      HintInfo^.CursorRect:=aList.ItemRect(Index);
+    end;
+  end;
+end;
+
+procedure TForm1.MChineseCNlanguageClick(Sender: TObject);
+begin
+  {$ifdef EnableLanguages}
+  sLanguage:='zh';
+  TransLate(sLanguage);
+  {$endif}
+end;
+
+procedure TForm1.MEnglishlanguageClick(Sender: TObject);
+begin
+  {$ifdef EnableLanguages}
+  sLanguage:='en';
+  TransLate(sLanguage);
+  {$endif}
+end;
+
+procedure TForm1.MKoreanlanguageClick(Sender: TObject);
+begin
+  {$ifdef EnableLanguages}
+  sLanguage:='ko';
+  TransLate(sLanguage);
+  {$endif}
+end;
+
+procedure TForm1.MFPCBugsClick(Sender: TObject);
+begin
+  OpenURL('https://gitlab.com/groups/freepascal.org/fpc/-/issues');
+end;
+
+procedure TForm1.MIssuesForumClick(Sender: TObject);
+begin
+  OpenURL('https://forum.lazarus.freepascal.org/index.php/topic,34645.0.html');
+end;
+
+procedure TForm1.MIssuesGitHubClick(Sender: TObject);
+begin
+  OpenURL('https://github.com/LongDirtyAnimAlf/fpcupdeluxe/issues');
+end;
+
+procedure TForm1.MLazarusBugsClick(Sender: TObject);
+begin
+  OpenURL('https://gitlab.com/freepascal.org/lazarus/lazarus/-/issues');
+end;
+
+procedure TForm1.ButtonAutoUpdateCrossCompiler(Sender: TObject);
+begin
+  AutoUpdateCrossCompiler(Sender);
+end;
+
+function TForm1.AutoUpdateCrossCompiler(Sender: TObject):boolean;
+var
+  FPCCfg:string;
+  BinPath:string;
+  ConfigText: TStringList;
+  aCPU, aOS: string;
+  aTCPU:TCPU;
+  aTOS:TOS;
+  aTSUBARCH:TSUBARCH;
+  Subarchs:TSUBARCHS;
+  RebuildSubarchs:TSUBARCHS;
+  CheckAutoClearStore:boolean;
+  success:boolean;
+  SnipBegin,SnipEnd: integer;
+  i:integer;
+  s,aResultMessage:string;
+begin
+  aOS := GetTargetOS;
+  aCPU := GetTargetCPU;
+
+  aTCPU:=TCPU.cpuNone;
+  aTOS:=TOS.osNone;
+  aTSUBARCH:=TSUBARCH.saNone;
+
+  //BinPath:=ConcatPaths([FPCupManager.FPCInstallDirectory,'bin',aCPU+'-'+aOS]);
+  BinPath:=ConcatPaths([sInstallDir,'fpc','bin',aCPU+'-'+aOS]);
+
+  FPCCfg := IncludeTrailingPathDelimiter(BinPath) + FPCCONFIGFILENAME;
+
+  result:=false;
+
+  if NOT FileExists(FPCCfg) then
+  begin
+    if (Sender<>nil) then AddMessage('FPC configfile ['+FPCCONFIGFILENAME+'] not found in ' + BinPath);
+    exit;
+  end;
+
+  if (Sender<>nil) then
+  begin
+    s:='Going to update all crosscompilers !' + sLineBreak +
+       'Do you want to continue ?';
+    if Form2.AskConfirmation then
+      if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+        exit;
+  end;
+
+  if (Sender<>nil) then
+  begin
+
+    CheckAutoClearStore:=CheckAutoClear.Checked;
+    if CheckAutoClearStore then btnClearLog.Click;
+    CheckAutoClear.Checked:=false;
+
+    memoSummary.Lines.Append(upBuildAllCrossCompilers);
+    memoSummary.Lines.Append(upBuildAllCrossCompilersCheck + BinPath);
+    memoSummary.Lines.Append('');
+
+  end
+  else
+  begin
+    memoSummary.Clear;
+  end;
+
+  success:=true;
+
+  aResultMessage:='No cross-compilers found. Nothing to do !';
+
+  ConfigText:=TStringList.Create;
+  try
+    ConfigText.LoadFromFile(FPCCFG);
+
+    SnipBegin:=0;
+    SnipEnd:=0;
+    while ((SnipBegin<>-1) AND (SnipEnd<>-1) AND (SnipBegin<ConfigText.Count)) do
+    begin
+      SnipBegin:=StringListStartsWith(ConfigText,SnipMagicBegin,SnipEnd);
+      SnipEnd:=-1;
+      if (SnipBegin<>-1) then
+      begin
+        SnipEnd:=SnipBegin+1;
+        if (Pos('-',ConfigText.Strings[SnipBegin])>0) then
+          SnipEnd:=StringListSame(ConfigText,SnipMagicEnd,SnipEnd)
+      end;
+
+
+      if (SnipBegin<>-1) AND (SnipEnd<>-1) then
+      begin
+        s:=ConfigText.Strings[SnipBegin];
+        Delete(s,1,Length(SnipMagicBegin));
+        i:=Pos('-',s);
+        if (i>0) then
+        begin
+          aCPU:=Copy(s,1,i-1);
+          aOS:=Trim(Copy(s,i+1,MaxInt));
+
+          aTCPU:=GetTCPU(aCPU);
+          aTOS:=GetTOS(aOS);
+
+          // try to distinguish between different Solaris versons
+          if (aTOS=TOS.solaris) then
+          begin
+            for i:=SnipBegin to SnipEnd do
+            begin
+              s:=ConfigText.Strings[i];
+              if (Pos('-FD',s)>0) AND (Pos('-solaris-oi',s)>0) then
+              begin
+                aOS:='solaris-oi';
+                break;
+              end;
+            end;
+          end;
+
+          // try to distinguish between different Linux versons
+          if (aTOS=TOS.linux) then
+          begin
+            for i:=SnipBegin to SnipEnd do
+            begin
+              s:=ConfigText.Strings[i];
+              if (Pos('-FD',s)>0) AND (Pos('-musllinux',s)>0) then
+              begin
+                aOS:='linux-musl';
+                break;
+              end;
+            end;
+          end;
+
+          if aTCPU=TCPU.powerpc then aCPU:='ppc';
+          if aTCPU=TCPU.powerpc64 then aCPU:='ppc64';
+          if aTOS=TOS.iphonesim then aOS:='i-sim';
+          if ( (aTOS=TOS.win32) or (aTOS=TOS.win64) ) then aOS:='windows';
+
+          // Get subarchs
+          RebuildSubarchs:=[TSUBARCH.saNone];
+          Subarchs:=GetSubarchs(aTCPU,aTOS);
+          for aTSUBARCH in Subarchs do
+          begin
+            if (aTSUBARCH=saNone) then continue;
+            for i:=(SnipBegin+6) to (SnipEnd-2) do
+            begin
+              s:=ConfigText.Strings[i];
+              if (s='#IFDEF CPU'+UpperCase(GetSubarch(aTSUBARCH))) then
+                Include(RebuildSubarchs,aTSUBARCH);
+            end;
+          end;
+
+          for aTSUBARCH in RebuildSubarchs do
+          begin
+            if (Sender=nil) then
+              Form2.SetCrossAvailable(aTCPU,aTOS,aTSubArch,true);
+
+            // Only build for subarch if we do have subarchs
+            if (aTOS in SUBARCH_OS) AND (aTCPU in SUBARCH_CPU) AND (aTSUBARCH=saNone) then continue;
+
+            if aTSUBARCH=saNone then
+              AddMessage(upBuildAllCrossCompilersFound+aCPU + '-' + aOS)
+            else
+              AddMessage(upBuildAllCrossCompilersFound+aCPU + '-' + aOS+ '-' + GetSubarch(aTSUBARCH));
+
+            // build compiler
+            if (Sender<>nil) then
+            begin
+              {$ifdef READER}
+              CommandOutputScreen.Clear;
+              {$else}
+              CommandOutputScreen.ClearAll;
+              {$endif}
+
+              aResultMessage:='Finished building of cross-compilers.';
+              AddMessage(upBuildAllCrossCompilersUpdate);
+
+              // Set subarch
+              SetSelectedSubArch(aTCPU,aTOS,aTSUBARCH);
+
+              // Set CPU and OS
+              radgrpCPU.ItemIndex:=radgrpCPU.Items.IndexOf(aCPU);
+              radgrpOS.ItemIndex:=radgrpOS.Items.IndexOf(aOS);
+
+              // Build !!
+              success:=ButtonProcessCrossCompiler(nil);
+
+              if success
+                then memoSummary.Lines.Append('Cross-compiler update ok.')
+                else memoSummary.Lines.Append('Failure during update of cross-compiler !!');
+              memoSummary.Lines.Append('');
+              if (NOT success) then
+              begin
+                aResultMessage:='Building of cross-compilers ended with some error(s).';
+                break;
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    if (Sender<>nil) then
+    begin
+      radgrpCPU.ItemIndex:=-1;
+      radgrpOS.ItemIndex:=-1;
+      CheckAutoClear.Checked:=CheckAutoClearStore;
+    end;
+
+  finally
+    ConfigText.Free;
+  end;
+
+  result:=success;
+
+  if (Sender<>nil) then
+  begin
+    AddMessage('');
+    AddMessage(aResultMessage,True);
+  end;
+end;
+
+procedure TForm1.InitFPCupManager;
+var
+  ModulesList: TStringList;
+  SelectedModulesList: TStringList;
+  i:integer;
+  s,v:string;
+  SettingsSuccess:boolean;
+begin
+  FPCupManager:=TFPCupManager.Create;
+  FPCupManager.ConfigFile:=SafeGetApplicationPath+installerUniversal.CONFIGFILENAME;
+
+  FPCupManager.LoadFPCUPConfig;
+
+  FPCupManager.FPCURL:='stable';
+  FPCupManager.LazarusURL:='stable';
+
+  FPCupManager.Verbose:=false;
+
+  //CheckFPCUPOptions(FPCupManager);
+
+  if listModules.Count=0 then
+  begin
+    ModulesList:=TStringList.Create;
+    SelectedModulesList:=TStringList.Create;
+    try
+      ModulesList.Delimiter:=_SEP;
+      ModulesList.StrictDelimiter:=true;
+      ModulesList.DelimitedText:=GetModuleList;
+      // filter modulelist from trivial entries
+      for i:=0 to Pred(ModulesList.Count) do
+      begin
+        s:=ModulesList[i];
+        if Pos(_DECLARE,s)=0 then
+          continue;
+        if (AnsiStartsText(_DECLARE+_SUGGESTED,s)) OR (AnsiStartsText(_DECLARE+_SUGGESTEDADD,s)) then
+          continue;
+        if (AnsiEndsText(_CLEAN,s)) OR (AnsiEndsText(_UNINSTALL,s)) OR (AnsiEndsText(_BUILD+_ONLY,s)) then
+          continue;
+        SelectedModulesList.Append(s);
+      end;
+      SelectedModulesList.Sort;
+      for i:=0 to (SelectedModulesList.Count-1) do
+      begin
+        s:=SelectedModulesList[i];
+        Delete(s,1,Length(_DECLARE));
+        // get module descriptions
+        v:=FPCupManager.ModulePublishedList.Values[s];
+        // add to list
+        listModules.Items.AddObject(s,TObject(pointer(StrNew(Pchar(v)))));
+      end;
+    finally
+      SelectedModulesList.Free;
+      ModulesList.Free;
+    end;
+  end;
+
+  FPCupManager.HTTPProxyPort:=Form2.HTTPProxyPort;
+  FPCupManager.HTTPProxyHost:=Form2.HTTPProxyHost;
+  FPCupManager.HTTPProxyUser:=Form2.HTTPProxyUser;
+  FPCupManager.HTTPProxyPassword:=Form2.HTTPProxyPass;
+
+  // localize FPCUPSettings if possible
+
+  SettingsSuccess:=GetFPCUPSettings(IncludeTrailingPathDelimiter(sInstallDir));
+  if (NOT SettingsSuccess) then SettingsSuccess:=GetFPCUPSettings(SafeGetApplicationPath);
+
+  if (SettingsSuccess and DirectoryExists(sInstallDir)) then
+  begin
+    s:=ConcatPaths([sInstallDir,'fpcsrc']);
+    if DirectoryExists(s) then
+      FPCupManager.FPCSourceDirectory:=s;
+    s:=ConcatPaths([sInstallDir,'lazarus']);
+    if DirectoryExists(s) then
+      FPCupManager.LazarusSourceDirectory:=s;
+  end;
+end;
+
+
+procedure TForm1.BitBtnHaltClick(Sender: TObject);
+begin
+  if (MessageDlg('I am going to try to halt.' + sLineBreak +
+             'Do not (yet) expect too much of it.' + sLineBreak +
+             'Its a non-finished feature !'
+             ,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+             begin
+               exit;
+             end;
+  if Assigned(FPCupManager.Sequencer) then
+  begin
+    FPCupManager.Sequencer.Kill;
+  end;
+end;
+
+procedure TForm1.btnGetOpenSSLClick(Sender: TObject);
+{$ifdef MSWindows}
+var
+  OpenSSLZip,OpenSSLURL:string;
+  Success:boolean;
+  {$endif MSWindows}
+begin
+  {$ifdef MSWindows}
+  OpenSSLURL:=OpenSSLSourceURL[Low(OpenSSLSourceURL)];
+  OpenSSLZip:=IncludeTrailingPathDelimiter(GetWindowsDownloadFolder)+FileNameFromURL(OpenSSLURL);
+  SysUtils.Deletefile(OpenSSLZip);
+  Success:=OpenURL(OpenSSLURL);
+  if (NOT Success) then
+  begin
+    OpenSSLURL:=OpenSSLSourceURL[High(OpenSSLSourceURL)];
+    OpenSSLZip:=IncludeTrailingPathDelimiter(GetWindowsDownloadFolder)+FileNameFromURL(OpenSSLURL);
+    SysUtils.Deletefile(OpenSSLZip);
+    Success:=OpenURL(OpenSSLURL);
+  end;
+  if Success then
+  begin
+    sleep(5000); // give browser some time to finish
+    if FileExists(OpenSSLZip) then
+    begin
+      with TNormalUnzipper.Create do
+      begin
+        try
+          SysUtils.Deletefile(SafeGetApplicationPath+'libeay32.dll');
+          if GetLastOSError<>5 then // no access denied
+          begin
+            SysUtils.Deletefile(SafeGetApplicationPath+'ssleay32.dll');
+            if GetLastOSError<>5 then // no access denied
+            begin
+              if DoUnZip(OpenSSLZip,SafeGetApplicationPath,['libeay32.dll','ssleay32.dll']) then
+              begin
+                AddMessage('Success: got OpenSSL library dll by browser!');
+              end;
+            end;
+          end;
+        finally
+          Free;
+        end;
+      end;
+      SysUtils.Deletefile(OpenSSLZip);
+    end;
+  end;
+  {$endif MSWindows}
+end;
+
+procedure TForm1.btnCreateLazarusConfigClick(Sender: TObject);
+begin
+  if (NOT PrepareRun(Sender)) then exit;
+  FPCupManager.OnlyModules:=_CONFIG+_LAZARUS;
+  sStatus:='Going to create basic Lazarus config only.';
+  RealRun;
+end;
+
+procedure TForm1.ChkMakefileFPCClick(Sender: TObject);
+begin
+  ThreadLog('AtenÃ§Ã£o');
+  //AddMessage('AtenÃ§Ã£o');
+  exit;
+  DisEnable(Sender,False);
+
+  try
+
+    if (Sender=ChkMakefileLaz) OR (Sender=ChkMakefileFPC) then
+    begin
+      if (NOT PrepareRun(Sender)) then exit;
+      if Sender=ChkMakefileLaz then FPCupManager.OnlyModules:=_MAKEFILECHECKLAZARUS;
+      if Sender=ChkMakefileFPC then FPCupManager.OnlyModules:=_MAKEFILECHECKFPC;
+      sStatus:='Going to check Makefile.';
+      {$ifdef RemoteLog}
+      aDataClient.UpInfo.UpFunction:=ufCheckMakefile;
+      {$endif}
+      RealRun;
+    end;
+
+    if Sender=CreateStartup then
+    begin
+      if (NOT PrepareRun(Sender)) then exit;
+      FPCupManager.OnlyModules:=_CREATESCRIPT;
+      sStatus:='Going to create startup scripts.';
+      {$ifdef RemoteLog}
+      aDataClient.UpInfo.UpFunction:=ufCreateStartup;
+      {$endif}
+      RealRun;
+    end;
+
+  finally
+    DisEnable(Sender,True);
+  end;
+end;
+
+procedure TForm1.MenuItem1Click(Sender: TObject);
+begin
+  ShowAboutForm;
+end;
+
+procedure TForm1.CommandOutputScreenMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  {$if defined(Darwin) or defined(macOS) or defined(iphonesim) or defined(ios)}
+  if ssMeta in Shift then
+  {$else}
+  if ssCtrl in Shift then
+  {$endif}
+  //if ssModifier in Shift then // as defined in controls.pp
+  begin
+    if (WheelDelta>0) AND (CommandOutputScreen.Font.Size<48) then CommandOutputScreen.Font.Size:=CommandOutputScreen.Font.Size+1;
+    if (WheelDelta<0)  AND (CommandOutputScreen.Font.Size>2) then CommandOutputScreen.Font.Size:=CommandOutputScreen.Font.Size-1;
+  end;
+end;
+
+{$ifndef READER}
 procedure TForm1.CommandOutputScreenSpecialLineMarkup(Sender: TObject; Line: integer;
   var Special: boolean; Markup: TSynSelectedColor);
 var
@@ -1602,13 +1641,15 @@ begin
     OR
     (ExistWordInString(PChar(s),'dependency dropped',[soDown]))
     OR
-    ( ExistWordInString(PChar(s),'echo ',[soDown]) AND ExistWordInString(PChar(s),'revision.inc',[soDown]) )
+    ( ( ExistWordInString(PChar(s),'echo.exe ',[soDown]) OR ExistWordInString(PChar(s),'echo ',[soDown]) OR ExistWordInString(PChar(s),'gecho.exe ',[soDown]) OR ExistWordInString(PChar(s),'gecho ',[soDown]) ) AND ExistWordInString(PChar(s),REVINCFILENAME,[soDown]) )
     OR
     ( ExistWordInString(PChar(s),'Start ',[soDown]) AND ExistWordInString(PChar(s),'now ',[soDown]) )
     OR
     (ExistWordInString(PChar(s),'this could take some time',[soDown]))
     OR
     (ExistWordInString(PChar(s),'Skipped package',[soWholeWord,soDown]))
+    OR
+    (ExistWordInString(PChar(s),'Processing Makefile.fpc',[soDown]))
     OR
     (
       (ExistWordInString(PChar(s),'writing',[soDown]))
@@ -1735,60 +1776,110 @@ begin
      else alternateui_AddMessage(s,false,clLime);
   {$endif}
 end;
+{$endif}
 
 procedure TForm1.PageControl1Change(Sender: TObject);
 var
   aFileList:TStringList;
+  aResultCode: longint;
+  Output:string;
+  GitExe:string;
+  GITTagCombo:string;
+  GITTag:string;
+  i:integer;
 begin
+  if TPageControl(Sender).ActivePage=ModuleSheet then
+  begin
+    if (listModules.HandleAllocated) AND (listModules.ItemIndex>8) then listModules.MakeCurrentVisible;
+  end;
+
   if TPageControl(Sender).ActivePage=TagSheet then
   begin
     Application.ProcessMessages;
     aFileList:=TStringList.Create;
+    aFileList.Delimiter:=#10;
+    aFileList.StrictDelimiter:=true;
     ListBoxFPCTargetTag.Items.BeginUpdate;
     ListBoxLazarusTargetTag.Items.BeginUpdate;
     try
-      aFileList.Clear;
-      GetSVNFileList(FPCBASESVNURL+'/cgi-bin/viewvc.cgi/tags/?root=fpc',aFileList);
-      ListBoxFPCTargetTag.Items.Text:=aFileList.Text;
-      aFileList.Clear;
-      GetSVNFileList(FPCBASESVNURL+'/cgi-bin/viewvc.cgi/tags/?root=lazarus',aFileList);
-      ListBoxLazarusTargetTag.Items.Text:=aFileList.Text;
+      GitExe:=Which('git'+GetExeExt);
+      {$ifdef MSWindows}
+      if (NOT FileExists(GitExe)) then
+      begin
+        GitExe:=ConcatPaths([FPCupManager.MakeDirectory,'git','cmd'])+PathSeparator+'git.exe';
+      end;
+      {$endif}
+
+      if FileExists(GitExe) then
+      begin
+
+        ListBoxFPCTargetTag.Items.Clear;
+        ListBoxLazarusTargetTag.Items.Clear;
+
+        aFileList.Clear;
+        RunCommandIndir('',GitExe,['ls-remote','--tags','--sort=-v:refname',FPCGITLABREPO+'.git','?.?.?'], Output, aResultCode,[poUsePipes, poStderrToOutPut]{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION >= 30200)},swoHide{$ENDIF});
+        aFileList.DelimitedText:=Output;
+        for GITTagCombo in aFileList do
+        begin
+          i:=Pos(#9,GITTagCombo);
+          GITTag:=Copy(GITTagCombo,i+1,MaxInt);
+          Delete(GITTag,1,Length('refs/tags/'));
+          ListBoxFPCTargetTag.Items.Append(GITTag);
+        end;
+        aFileList.Clear;
+
+        RunCommandIndir('',GitExe,['ls-remote','--tags','--sort=-v:refname',LAZARUSGITLABREPO+'.git','*_RC?'], Output, aResultCode,[poUsePipes, poStderrToOutPut]{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION >= 30200)},swoHide{$ENDIF});
+        aFileList.DelimitedText:=Output;
+        for GITTagCombo in aFileList do
+        begin
+          i:=Pos(#9,GITTagCombo);
+          GITTag:=Copy(GITTagCombo,i+1,MaxInt);
+          Delete(GITTag,1,Length('refs/tags/'));
+          ListBoxLazarusTargetTag.Items.Append(GITTag);
+        end;
+        aFileList.Clear;
+
+        //Do this only once !!
+        TPageControl(Sender).OnChange:=nil;
+      end;
+
     finally
       aFileList.Free;
       ListBoxLazarusTargetTag.Items.EndUpdate;
       ListBoxFPCTargetTag.Items.EndUpdate;
     end;
-    //Do this only once !!
-    TPageControl(Sender).OnChange:=nil;
   end;
 end;
 
 procedure TForm1.OnlyTagClick(Sender: TObject);
 var
-  aNewURL:string;
+  aTag:string;
 begin
   if Sender=BitBtnFPCOnlyTag then
   begin
-    aNewURL:=FPCBASESVNURL+'/svn/fpc/tags/'+ListBoxFPCTargetTag.GetSelectedText;
-    if SetAlias('fpcURL',ListBoxFPCTargetTag.GetSelectedText,aNewURL) then
+    aTag:=ListBoxFPCTargetTag.GetSelectedText;
+    if SetAlias(FPCTAGLOOKUPMAGIC,aTag+'.gitlab',aTag) then
     begin
-      ListBoxFPCTarget.Items.CommaText:=installerUniversal.GetAlias('fpcURL','list');
+      ListBoxFPCTarget.Items.CommaText:=installerUniversal.GetAlias(FPCURLLOOKUPMAGIC,'list');
       MemoAddTag.Lines.Clear;
-      MemoAddTag.Lines.Add('The tag with name ['+ListBoxFPCTargetTag.GetSelectedText+'] and URL ['+aNewURL+'] was added to the bottom of the FPC list.');
+      MemoAddTag.Lines.Add('The tag with name ['+aTag+'] was added to the FPC sources list.');
       //ListBoxFPCTarget.ItemIndex:=ListBoxFPCTarget.Count-1;
     end;
   end;
   if Sender=BitBtnLazarusOnlyTag then
   begin
-    aNewURL:=FPCBASESVNURL+'/svn/lazarus/tags/'+ListBoxLazarusTargetTag.GetSelectedText;
-    if SetAlias('lazURL',ListBoxLazarusTargetTag.GetSelectedText,aNewURL) then
+    aTag:=ListBoxLazarusTargetTag.GetSelectedText;
+    if SetAlias(LAZARUSTAGLOOKUPMAGIC,aTag+'.gitlab',aTag) then
     begin
-      ListBoxLazarusTarget.Items.CommaText:=installerUniversal.GetAlias('lazURL','list');
+      ListBoxLazarusTarget.Items.CommaText:=installerUniversal.GetAlias(LAZARUSURLLOOKUPMAGIC,'list');
       MemoAddTag.Lines.Clear;
-      MemoAddTag.Lines.Add('The tag with name ['+ListBoxLazarusTargetTag.GetSelectedText+'] and URL ['+aNewURL+'] was added to the bottom of the Lazarus list.');
+      MemoAddTag.Lines.Add('The tag with name ['+aTag+'] was added to the Lazarus sources list.');
       //ListBoxLazarusTarget.ItemIndex:=ListBoxLazarusTarget.Count-1;
     end;
   end;
+
+  FillSourceListboxes;
+  ScrollToSelected;
 end;
 
 procedure TForm1.TagSelectionChange(Sender: TObject;User: boolean);
@@ -1803,17 +1894,71 @@ end;
 
 procedure TForm1.IniPropStorageAppRestoringProperties(Sender: TObject);
 begin
-  SessionProperties := 'WindowState;Width;Height;Top;Left;CmdFontSize;';
+  {$ifdef Haiku}
+  SessionProperties := 'CmdFontSize;CmdFontName;';
+  {$else}
+  SessionProperties := 'WindowState;Width;Height;Top;Left;CmdFontSize;CmdFontName;';
+  {$endif}
   //Width := MulDiv(Width, 96, Screen.PixelsPerInch);
   //Height := MulDiv(Height, 96, Screen.PixelsPerInch);
 end;
 
 procedure TForm1.IniPropStorageAppSavingProperties(Sender: TObject);
 begin
+  {$ifdef Haiku}
+  SessionProperties := 'CmdFontSize;CmdFontName;'
+  {$else}
   if Self.WindowState=wsMaximized then
-    SessionProperties := 'WindowState;CmdFontSize;'
+    SessionProperties := 'WindowState;CmdFontSize;CmdFontName;'
   else
-    SessionProperties := 'WindowState;Width;Height;Top;Left;CmdFontSize;';
+    SessionProperties := 'WindowState;Width;Height;Top;Left;CmdFontSize;CmdFontName;';
+  {$endif}
+end;
+
+procedure TForm1.ListBoxTargetDrawItem(Control: TWinControl; Index: Integer;
+  ARect: TRect; State: TOwnerDrawState);
+var
+  i:integer;
+  s:string;
+begin
+  with Control as TListBox do
+  begin
+    if Assigned(Font) then
+    begin
+      Canvas.Font := Font;
+      Canvas.Font.PixelsPerInch := Font.PixelsPerInch;
+    end;
+    if Assigned(Brush) then
+      Canvas.Brush := Brush;
+    if ((Index<>-1) AND (odSelected in State)) then
+    begin
+      Canvas.Brush.Color := clHighlight;
+      Canvas.Font.Color := clHighlightText
+    end
+    else
+    begin
+      Canvas.Brush.Color := GetColorResolvingParent;
+      Canvas.Font.Color := clWindowText;
+    end;
+
+    if (odFocused in State) and (lboDrawFocusRect in Options) then
+      Canvas.DrawFocusRect(ARect);
+    if (NOT (odBackgroundPainted in State)) then
+      Canvas.FillRect(ARect);
+    if (Index<>-1) then
+    begin
+      s:=Items[Index];
+      i:=Pos('.svn',s);
+      if (i=0) then
+        i:=Pos(GITLABEXTENSION,s)
+      else
+        Canvas.Font.Color := clRed;
+      if (i>0) then Delete(s,i,MaxInt);
+      {if ((odDisabled in State) OR (odGrayed in State)) then}
+      Canvas.Brush.Style:=bsClear;
+      Canvas.TextOut(ARect.Left + 2, ARect.Top, s);
+    end;
+  end;
 end;
 
 procedure TForm1.radgrpTargetChanged(Sender: TObject);
@@ -1860,6 +2005,48 @@ begin
     btnSetupPlusClick(nil);
 end;
 
+procedure TForm1.btnCheckToolsLocationsClick(Sender: TObject);
+var
+  aCPU:TCPU;
+  aOS:TOS;
+  success:boolean;
+  BinsFileName,LibsFileName,BaseBinsURL,BaseLibsURL,BinPath,LibPath:string;
+begin
+  for aOS := Low(TOS) to High(TOS) do
+  begin
+    if aOS=osNone then continue;
+    for aCPU := Low(TCPU) to High(TCPU) do
+    begin
+      if aCPU=cpuNone then continue;
+      FPCupManager.CrossCPU_Target:=aCPU;
+      FPCupManager.CrossOS_Target:=aOS;
+      FPCupManager.GetCrossToolsFileName({%H-}BinsFileName,{%H-}LibsFileName);
+      FPCupManager.GetCrossToolsPath({%H-}BinPath,{%H-}LibPath);
+      success:=FPCupManager.GetCrossBinsURL({%H-}BaseBinsURL,BinsFileName);
+      {
+      if (NOT success) then
+      begin
+        BaseBinsURL:='none';
+        success:=true;
+      end;
+      }
+      if success then
+      begin
+        AddMessage(FPCupManager.CrossCombo_Target+' bins: '+BaseBinsURL);
+        success:=FPCupManager.GetCrossLibsURL({%H-}BaseLibsURL,LibsFileName);
+        if (NOT success) then
+        begin
+          BaseLibsURL:='none';
+          success:=true;
+        end;
+        if success then AddMessage(FPCupManager.CrossCombo_Target+' libs: '+BaseLibsURL);
+      end;
+    end;
+  end;
+  FPCupManager.CrossCPU_Target:=TCPU.cpuNone;
+  FPCupManager.CrossOS_Target:=TOS.osNone;
+end;
+
 procedure TForm1.QuickBtnClick(Sender: TObject);
 var
   s:string;
@@ -1880,32 +2067,30 @@ begin
   if Sender=TrunkBtn then
   begin
     s:='Going to install both FPC trunk and Lazarus trunk.';
-    aFPCTarget:='trunk';
-    aLazarusTarget:='trunk';
+    aFPCTarget:='trunk'+GITLABEXTENSION;
+    aLazarusTarget:='trunk'+GITLABEXTENSION;
   end;
 
   if Sender=FixesBtn then
   begin
     s:='Going to install FPC fixes and Lazarus fixes.';
-    aFPCTarget:='fixes';
-    aLazarusTarget:='fixes';
+    aFPCTarget:='fixes'+GITLABEXTENSION;
+    aLazarusTarget:='fixes'+GITLABEXTENSION;
   end;
 
   if Sender=StableBtn then
   begin
     s:='Going to install FPC stable and Lazarus stable.';
-    aFPCTarget:='stable';
-    aLazarusTarget:='stable';
+    aFPCTarget:='stable'+GITLABEXTENSION;
+    aLazarusTarget:='stable'+GITLABEXTENSION;
   end;
 
-  {$ifdef Darwin}
-  if (Sender=TrunkBtn) OR (Sender=StableBtn) then
+  if Sender=Win95Btn then
   begin
-    // No SVN anymore on darwin: use GIT repos
-    aFPCTarget:=aFPCTarget+'.git';
-    aLazarusTarget:=aLazarusTarget+'.git';
+    s:='Going to install FPC and Lazarus for Win95.';
+    aFPCTarget:='2.6.2'+GITLABEXTENSION;
+    aLazarusTarget:='1.2'+GITLABEXTENSION;
   end;
-  {$endif}
 
   {
   if Sender=OldBtn then
@@ -1922,8 +2107,8 @@ begin
   if Sender=AndroidBtn then
   begin
     s:='Going to install FPC and Lazarus stable, armv7/arm64 cross-android compilers and LAMW.';
-    aFPCTarget:='stable';
-    aLazarusTarget:='stable';
+    aFPCTarget:='stable'+GITLABEXTENSION;
+    aLazarusTarget:='stable'+GITLABEXTENSION;
     aModule:='lamw';
   end;
 
@@ -1969,8 +2154,16 @@ begin
       s:='Going to install FPC and Lazarus for Wio Terminal.';
       aModule:='develtools4fpc,mbf-freertos-wio';
     end;
-    aFPCTarget:='embedded';
-    aLazarusTarget:='trunk';
+    aFPCTarget:='embedded'+GITLABEXTENSION;
+    aLazarusTarget:='trunk'+GITLABEXTENSION;
+  end;
+
+  if Sender=ESPBtn then
+  begin
+    s:='Going to install FPC and Lazarus for ESP32.';
+    aModule:='xtensatools4fpc';
+    aFPCTarget:='trunk'+GITLABEXTENSION;
+    aLazarusTarget:='trunk'+GITLABEXTENSION;
   end;
 
   if Sender=mORMotBtn then
@@ -1983,8 +2176,8 @@ begin
   if Sender=UltiboBtn then
   begin
     s:='Going to install the Ultibo.';
-    aFPCTarget:='ultibo';
-    aLazarusTarget:='ultibo';
+    aFPCTarget:='ultibo.zip';
+    aLazarusTarget:='ultibo.zip';
   end;
 
   if Sender=OPMBtn then
@@ -1996,7 +2189,12 @@ begin
 
   s:=s+sLineBreak;
   s:=s+'Install directory: '+Self.sInstallDir;
-  if (MessageDlg(s+sLineBreak+'Do you want to continue ?',mtConfirmation,[mbYes, mbNo],0)<>mrYes) then exit;
+  if Form2.AskConfirmation then
+    if (MessageDlg(s+sLineBreak+'Do you want to continue ?',mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+      exit;
+
+  if ( AnsiEndsText(GITLABEXTENSION,aFPCTarget) AND AnsiEndsText(GITLABEXTENSION,aLazarusTarget) AND (NOT chkGitlab.Checked) ) then
+    chkGitlab.Checked:=true;
 
   AddMessage(s+'.');
   //sStatus:=s;
@@ -2009,7 +2207,7 @@ begin
     if (Length(aLazarusTarget)>0) then
       LazarusTarget:=aLazarusTarget;
 
-    PrepareRun;
+    if (NOT PrepareRun(Sender)) then exit;
 
     if (Length(aModule)>0)then
     begin
@@ -2068,6 +2266,15 @@ begin
         aSUBARCH:=TSUBARCH.armv7em;
       end;
 
+      if Sender=ESPBtn then
+      begin
+        s:='Going to install FPC cross-compiler for ESP32.';
+        aCPU:=TCPU.xtensa;
+        aOS:=TOS.freertos;
+        aSUBARCH:=TSUBARCH.lx6;
+      end;
+
+
       if Sender=UltiboBtn then
       begin
         s:='Going to install FPC cross-compiler for Ultibo.';
@@ -2084,7 +2291,7 @@ begin
         aSUBARCH:=TSUBARCH.saNone;
       end;
 
-      if (Sender=PicoBtn) OR (Sender=WioBtn) OR (Sender=UltiboBtn) OR (Sender=AndroidBtn) then
+      if (Sender=PicoBtn) OR (Sender=WioBtn) OR (Sender=ESPBtn) OR (Sender=UltiboBtn) OR (Sender=AndroidBtn) then
       begin
         radgrpCPU.ItemIndex:=radgrpCPU.Items.IndexOf(GetCPU(aCPU));
         radgrpOS.ItemIndex:=radgrpOS.Items.IndexOf(GetOS(aOS));
@@ -2114,10 +2321,7 @@ begin
         aCPU:=TCPU.aarch64;
         aOS:=TOS.android;
         aSUBARCH:=TSUBARCH.saNone;
-      end;
 
-      if (Sender=AndroidBtn) then
-      begin
         radgrpCPU.ItemIndex:=radgrpCPU.Items.IndexOf(GetCPU(aCPU));
         radgrpOS.ItemIndex:=radgrpOS.Items.IndexOf(GetOS(aOS));
         Form2.SetCrossAvailable(aCPU,aOS,aSUBARCH,true);
@@ -2202,7 +2406,9 @@ begin
     s:=s+'Install directory: '+Self.sInstallDir;
     s:=s+sLineBreak;
     s:=s+'Do you want to continue ?';
-    if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then exit;
+    if Form2.AskConfirmation then
+      if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+        exit;
 
     if Sender=btnInstallModule then
     begin
@@ -2219,7 +2425,7 @@ begin
 
     DisEnable(Sender,False);
     try
-      PrepareRun;
+      if (NOT PrepareRun(Sender)) then exit;
 
       FPCupManager.ExportOnly:=(NOT Form2.PackageRepo);
       FPCupManager.OnlyModules:=modules;
@@ -2256,24 +2462,28 @@ end;
 
 function TForm1.ButtonProcessCrossCompiler(Sender: TObject):boolean;
 var
-  BinsFileName,LibsFileName,DownloadURL,TargetFile,TargetPath,BinPath,LibPath,UnZipper,s:string;
+  BinsFileName,LibsFileName,BaseBinsURL,BaseLibsURL,BinPath,LibPath:string;
+  ToolTargetPath,ToolTargetFile,UnZipper,s:string;
   warning,success,verbose:boolean;
   IncludeLCL,ZipFile:boolean;
   i:integer;
-  MajorVersion,MinorVersion:integer;
   aList: TStringList;
-  BaseBinsURL:string;
-  BinsURL,LibsURL:string;
+  frmSeq: TfrmSequencial;
 begin
   result:=false;
 
   {$ifdef win64}
-  if (MessageDlg('It is ill-advised to cross from Windows 64 bit !'+sLineBreak+'Better use a Windows 32 bit install.'+sLineBreak+'Do you want to continue ?',mtConfirmation,[mbYes, mbNo],0)<>mrYes) then exit;
+  if (Sender<>nil) then
+  begin
+    if Form2.AskConfirmation then
+      if (MessageDlg('It is ill-advised to cross from Windows 64 bit !'+sLineBreak+'(Win64 OS disabled extended support for 64-bit applications)'+sLineBreak+'Better use a Windows 32 bit install.'+sLineBreak+'Do you want to continue ?',mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+        exit;
+  end;
   {$endif}
 
   if (radgrpCPU.ItemIndex=-1) and (radgrpOS.ItemIndex=-1) then
   begin
-    if Sender<>nil then ShowMessage('Please select a CPU and OS target first');
+    if (Sender<>nil) then ShowMessage('Please select a CPU and OS target first');
     exit;
   end;
 
@@ -2458,7 +2668,7 @@ begin
   // OS=amiga) AND (CPU<>m68k))
   // OS=morphos) AND (CPU<>powerpc))
 
-  PrepareRun;
+  if (NOT PrepareRun(Sender)) then exit;
 
   if radgrpCPU.ItemIndex<>-1 then
   begin
@@ -2597,10 +2807,9 @@ begin
   begin
     s:='Going to remove the cross-compiler for ['+GetCPU(FPCupManager.CrossCPU_Target)+'-'+GetOS(FPCupManager.CrossOS_Target)+'].' + sLineBreak +
        'Do you want to continue ?';
-    if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
-    begin
-      exit;
-    end;
+    if Form2.AskConfirmation then
+      if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+        exit;
 
     DisEnable(Sender,False);
     try
@@ -2742,10 +2951,9 @@ begin
       if (length(s)=0) then
         s:='Do you want to continue ?';
       s:='Going to install the cross-compiler for' + sLineBreak + '['+FPCupManager.CrossCombo_Target+']' + sLineBreak + s;
-      if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
-      begin
-        exit;
-      end;
+      if Form2.AskConfirmation then
+        if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+          exit;
     end;
 
     DisEnable(Sender,False);
@@ -2939,378 +3147,124 @@ begin
                      end;
           end;
 
-          BinsFileName:='';
+          // Get special tools when needed !
 
-          if ((Sender<>nil) AND (CheckAutoClear.Checked)) then memoSummary.Clear;
-
-          memoSummary.Lines.Append('New try building a cross-compiler for '+GetOS(FPCupManager.CrossOS_Target)+'-'+GetCPU(FPCupManager.CrossCPU_Target)+'.');
-
-          AddMessage('Looking for fpcupdeluxe cross-tools on GitHub (if any).');
-
-          // Setting the CPU part of the name[s] for the file to download
-          if FPCupManager.CrossCPU_Target=TCPU.arm then s:='ARM' else
-            if FPCupManager.CrossCPU_Target=TCPU.i386 then s:='i386' else
-              if FPCupManager.CrossCPU_Target=TCPU.x86_64 then s:='x64' else
-                if FPCupManager.CrossCPU_Target=TCPU.powerpc then s:='PowerPC' else
-                  if FPCupManager.CrossCPU_Target=TCPU.powerpc64 then s:='PowerPC64' else
-                    if FPCupManager.CrossCPU_Target=TCPU.avr then s:='AVR' else
-                      s:=UppercaseFirstChar(GetCPU(FPCupManager.CrossCPU_Target));
-
-          BinsFileName:=s;
-
-          // Set special CPU names
-          if FPCupManager.CrossOS_Target=TOS.darwin then
+          if (NOT success) then
           begin
-            // Darwin has some universal binaries and libs
-            if FPCupManager.CrossCPU_Target=TCPU.i386 then BinsFileName:='All';
-            if FPCupManager.CrossCPU_Target=TCPU.x86_64 then BinsFileName:='All';
-            if FPCupManager.CrossCPU_Target=TCPU.aarch64 then BinsFileName:='All';
-            if FPCupManager.CrossCPU_Target=TCPU.powerpc then BinsFileName:='PowerPC';
-            if FPCupManager.CrossCPU_Target=TCPU.powerpc64 then BinsFileName:='PowerPC';
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.ios then
-          begin
-            // iOS has some universal binaries and libs
-            if FPCupManager.CrossCPU_Target=TCPU.arm then BinsFileName:='All';
-            if FPCupManager.CrossCPU_Target=TCPU.aarch64 then BinsFileName:='All';
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.aix then
-          begin
-            // AIX has some universal binaries
-            if FPCupManager.CrossCPU_Target=TCPU.powerpc then BinsFileName:='PowerPC';
-            if FPCupManager.CrossCPU_Target=TCPU.powerpc64 then BinsFileName:='PowerPC';
-          end;
-
-          // Set OS case
-          if FPCupManager.CrossOS_Target=TOS.morphos then s:='MorphOS' else
-            if FPCupManager.CrossOS_Target=TOS.freebsd then s:='FreeBSD' else
-              if FPCupManager.CrossOS_Target=TOS.dragonfly then s:='DragonFlyBSD' else
-                if FPCupManager.CrossOS_Target=TOS.openbsd then s:='OpenBSD' else
-                  if FPCupManager.CrossOS_Target=TOS.netbsd then s:='NetBSD' else
-                    if FPCupManager.CrossOS_Target=TOS.aix then s:='AIX' else
-                      if FPCupManager.CrossOS_Target=TOS.msdos then s:='MSDos' else
-                        if FPCupManager.CrossOS_Target=TOS.freertos then s:='FreeRTOS' else
-                          if FPCupManager.CrossOS_Target=TOS.win32 then s:='Windows' else
-                            if FPCupManager.CrossOS_Target=TOS.win64 then s:='Windows' else
-                              if FPCupManager.CrossOS_Target=TOS.ios then s:='IOS' else
-                              s:=UppercaseFirstChar(GetOS(FPCupManager.CrossOS_Target));
-
-          if FPCupManager.SolarisOI then s:=s+'OI';
-          BinsFileName:=s+BinsFileName;
-
-          if FPCupManager.MUSL then BinsFileName:='MUSL'+BinsFileName;
-
-          // normally, we have the same names for libs and bins URL
-          LibsFileName:=BinsFileName;
-
-          {$IF (defined(Windows)) OR (defined(Linux))}
-          if (
-            ((FPCupManager.CrossOS_Target=TOS.darwin) AND (FPCupManager.CrossCPU_Target in [TCPU.i386,TCPU.x86_64,TCPU.aarch64]))
-            OR
-            ((FPCupManager.CrossOS_Target=TOS.ios) AND (FPCupManager.CrossCPU_Target in [TCPU.arm,TCPU.aarch64]))
-            ) then
-          begin
-            // Set special BinsFile for universal tools for Darwin
-            BinsFileName:='AppleAll';
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.android then
-          begin
-            // Android has universal binaries
-            BinsFileName:='AndroidAll';
-          end;
-          {$endif}
-
-          if FPCupManager.CrossCPU_Target=TCPU.wasm32 then
-          begin
-            // wasm has some universal binaries
-            BinsFileName:='AllWasm32';
-          end;
-
-
-          // Setting the location of libs and bins on our system, so they can be found by fpcupdeluxe
-          // Normally, we have the standard names for libs and bins paths
-          LibPath:=ConcatPaths([{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION < 30200)}UnicodeString{$ENDIF}(CROSSPATH),'lib',GetCPU(FPCupManager.CrossCPU_Target)])+'-';
-          BinPath:=ConcatPaths([{$IF DEFINED(FPC_FULLVERSION) AND (FPC_FULLVERSION < 30200)}UnicodeString{$ENDIF}(CROSSPATH),'bin',GetCPU(FPCupManager.CrossCPU_Target)])+'-';
-
-          if FPCupManager.MUSL then
-          begin
-            LibPath:=LibPath+'musl';
-            BinPath:=BinPath+'musl';
-          end;
-          LibPath:=LibPath+GetOS(FPCupManager.CrossOS_Target);
-          BinPath:=BinPath+GetOS(FPCupManager.CrossOS_Target);
-          if FPCupManager.SolarisOI then
-          begin
-            LibPath:=LibPath+'-oi';
-            BinPath:=BinPath+'-oi';
-          end;
-
-          {$IF (defined(Windows)) OR (defined(Linux))}
-          // Set special Bins directory for universal tools for Darwin based on clang
-          if (
-            ((FPCupManager.CrossOS_Target=TOS.darwin) AND (FPCupManager.CrossCPU_Target in [TCPU.i386,TCPU.x86_64,TCPU.aarch64]))
-            OR
-            ((FPCupManager.CrossOS_Target=TOS.ios) AND (FPCupManager.CrossCPU_Target in [TCPU.arm,TCPU.aarch64]))
-            ) then
-          begin
-            BinPath:=StringReplace(BinPath,GetCPU(FPCupManager.CrossCPU_Target),'all',[]);
-            BinPath:=StringReplace(BinPath,GetOS(FPCupManager.CrossOS_Target),'apple',[]);
-          end;
-
-          // Set special Bins directory for universal tools for Android based on clang
-          if FPCupManager.CrossOS_Target=TOS.android then
-          begin
-            BinPath:=StringReplace(BinPath,GetCPU(FPCupManager.CrossCPU_Target),'all',[]);
-          end;
-          {$endif}
-
-          // Set special Bins directory for universal tools for wasm32
-          if FPCupManager.CrossCPU_Target=TCPU.wasm32 then
-          begin
-            BinPath:=StringReplace(BinPath,GetOS(FPCupManager.CrossOS_Target),'all',[]);
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.darwin then
-          begin
-            // Darwin is special: combined binaries and libs for i386 and x86_64 with osxcross
-            if (FPCupManager.CrossCPU_Target=TCPU.i386) OR (FPCupManager.CrossCPU_Target=TCPU.x86_64) OR (FPCupManager.CrossCPU_Target=TCPU.aarch64) then
+            if (FPCupManager.CrossCPU_Target=TCPU.xtensa) AND (FPCupManager.CrossOS_Target=TOS.freertos) then
             begin
-              BinPath:=StringReplace(BinPath,GetCPU(FPCupManager.CrossCPU_Target),'all',[]);
-              LibPath:=StringReplace(LibPath,GetCPU(FPCupManager.CrossCPU_Target),'all',[]);
-            end;
-            if (FPCupManager.CrossCPU_Target=TCPU.powerpc) OR (FPCupManager.CrossCPU_Target=TCPU.powerpc64) then
-            begin
-              BinPath:=StringReplace(BinPath,GetCPU(FPCupManager.CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
-              LibPath:=StringReplace(LibPath,GetCPU(FPCupManager.CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
-            end;
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.ios then
-          begin
-            // iOS is special: combined libs for arm and aarch64
-            if (FPCupManager.CrossCPU_Target=TCPU.arm) OR (FPCupManager.CrossCPU_Target=TCPU.aarch64) then
-            begin
-              BinPath:=StringReplace(BinPath,GetCPU(FPCupManager.CrossCPU_Target),'all',[]);
-              LibPath:=StringReplace(LibPath,GetCPU(FPCupManager.CrossCPU_Target),'all',[]);
-            end;
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.aix then
-          begin
-            // AIX is special: combined binaries and libs for ppc and ppc64 with osxcross
-            if (FPCupManager.CrossCPU_Target=TCPU.powerpc) OR (FPCupManager.CrossCPU_Target=TCPU.powerpc64) then
-            begin
-              BinPath:=StringReplace(BinPath,GetCPU(FPCupManager.CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
-              LibPath:=StringReplace(LibPath,GetCPU(FPCupManager.CrossCPU_Target),GetCPU(TCPU.powerpc),[]);
-            end;
-          end;
-
-          //Put all windows stuff (not that much) in a single windows directory
-          if (FPCupManager.CrossOS_Target=TOS.win32) OR (FPCupManager.CrossOS_Target=TOS.win64) then
-          begin
-            BinPath:=StringReplace(BinPath,GetOS(FPCupManager.CrossOS_Target),'windows',[]);
-            LibPath:=StringReplace(LibPath,GetOS(FPCupManager.CrossOS_Target),'windows',[]);
-          end;
-
-          if FPCupManager.CrossOS_Target=TOS.linux then
-          begin
-            // PowerPC64 is special: only little endian libs for now
-            if (FPCupManager.CrossCPU_Target=TCPU.powerpc64) then
-            begin
-              LibsFileName:=StringReplace(LibsFileName,'PowerPC64','PowerPC64LE',[rfIgnoreCase]);
-            end;
-
-            // ARM is special: can be hard or softfloat (Windows only binutils yet)
-            {$ifdef MSWINDOWS}
-            if (FPCupManager.CrossCPU_Target=TCPU.arm) then
-            begin
-              if (Pos('SOFT',UpperCase(FPCupManager.CrossOPT))>0) OR (Pos('FPC_ARMEL',UpperCase(FPCupManager.FPCOPT))>0) then
+              try
+                s:=FPCupManager.OnlyModules;
+                if Assigned(FPCupManager.Sequencer) then FPCupManager.Sequencer.ResetAllExecuted;
+                FPCupManager.OnlyModules:='xtensatools4fpc';
+                AddMessage('Getting (if any) xtensa tools from https://github.com/michael-ring/espsdk4fpc.');
+                success:=RealRun;
+              finally
+                FPCupManager.OnlyModules:=s;
+              end;
+              if success then
               begin
-                // use softfloat binutils
-                BinsFileName:=StringReplace(LibsFileName,'BinsLinuxARM','BinsLinuxARMSoft',[rfIgnoreCase]);
+                // Check if we have received some files.
+                s:=ConcatPaths([FPCupManager.BaseDirectory,CROSSBINPATH,GetCPU(TCPU.xtensa)+'-'+GetOS(TOS.freertos)]);
+                if DirectoryExists(s) then MissingCrossBins:=false;
+                s:=ConcatPaths([FPCupManager.BaseDirectory,CROSSLIBPATH,GetCPU(TCPU.xtensa)+'-'+GetOS(TOS.freertos)]);
+                if DirectoryExists(s) then MissingCrossLibs:=false;
+                if MissingCrossBins OR MissingCrossLibs then success:=false;
               end;
             end;
-            {$endif}
           end;
 
-          //{$IF defined(CPUAARCH64) AND defined(DARWIN)}
-          {$ifndef MSWINDOWS}
-          // For most targets, FreeRTOS is a special version of embedded, so just use the embedded tools !!
-          if FPCupManager.CrossOS_Target=TOS.freertos then
+          // Get fpcupdeluxe tools when needed !
+          if (NOT success) then
           begin
-            // use embedded tools for freertos:
-            if (FPCupManager.CrossCPU_Target in SUBARCH_CPU) then
+            if ((Sender<>nil) AND (CheckAutoClear.Checked)) then memoSummary.Clear;
+
+            memoSummary.Lines.Append('Trying to build the cross-compiler for '+GetOS(FPCupManager.CrossOS_Target)+'-'+GetCPU(FPCupManager.CrossCPU_Target)+'.');
+
+            AddMessage('Looking for fpcupdeluxe cross-tools on GitHub (if any).');
+
+            FPCupManager.GetCrossToolsFileName({%H-}BinsFileName,{%H-}LibsFileName);
+            FPCupManager.GetCrossToolsPath({%H-}BinPath,{%H-}LibPath);
+
+            // bit tricky ... if bins and/or libs are already there exit this retry ... ;-)
+            if (NOT DirectoryIsEmpty(IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+BinPath)) then MissingCrossBins:=false;
+
+            if (FPCupManager.CrossOS_SubArch=TSUBARCH.saNone) then
             begin
-              BinsFileName:=StringReplace(BinsFileName,'FreeRTOS','Embedded',[]);
-            end;
-          end;
-          {$endif}
-
-          // All ready !!
-
-          LibsFileName:='CrossLibs'+LibsFileName;
-          {$ifdef MSWINDOWS}
-          BinsFileName:='WinCrossBins'+BinsFileName;
-          {$else}
-          BinsFileName:='CrossBins'+BinsFileName;
-          {$endif MSWINDOWS}
-
-          // bit tricky ... if bins and/or libs are already there exit this retry ... ;-)
-
-          if (NOT DirectoryIsEmpty(IncludeTrailingPathDelimiter(sInstallDir)+BinPath)) then MissingCrossBins:=false;
-
-          if (FPCupManager.CrossOS_SubArch=TSUBARCH.saNone) then
-          begin
-            if (NOT DirectoryIsEmpty(IncludeTrailingPathDelimiter(sInstallDir)+LibPath)) then MissingCrossLibs:=false;
-          end
-          else
-          begin
-            s:=ConcatPaths([sInstallDir,LibPath,GetSubarch(FPCupManager.CrossOS_SubArch)]);
-            if (NOT DirectoryIsEmpty(s)) then
-              MissingCrossLibs:=false
+              if (NOT DirectoryIsEmpty(IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+LibPath)) then MissingCrossLibs:=false;
+            end
             else
-              MissingCrossLibs:=true;// force the download of embedded libs if not there ... if this fails, don't worry, building will go on
-          end;
-
-          // Get tools !!
-          if (MissingCrossBins OR MissingCrossLibs) then
-          begin
-
-            // many files to unpack for Darwin : do not show progress of unpacking files when unpacking for Darwin.
-            verbose:=(FPCupManager.CrossOS_Target<>TOS.darwin);
-
-            if MissingCrossBins then
             begin
-              AddMessage('Going to look for the right cross-bins. Can (will) take some time !',True);
-
-              BaseBinsURL:='';
-
-              if GetTargetOS=GetOS(TOS.win32) then BaseBinsURL:='wincrossbins'
+              s:=ConcatPaths([FPCupManager.BaseDirectory,LibPath,GetSubarch(FPCupManager.CrossOS_SubArch)]);
+              if (NOT DirectoryIsEmpty(s)) then
+                MissingCrossLibs:=false
               else
-                 if GetTargetOS=GetOS(TOS.win64) then BaseBinsURL:='wincrossbins'
-                 else
-                    if GetTargetOS=GetOS(TOS.linux) then
-                    begin
-                      if GetTargetCPU=GetCPU(TCPU.i386) then BaseBinsURL:='linuxi386crossbins';
-                      if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='linuxx64crossbins';
-                      if GetTargetCPU=GetCPU(TCPU.arm) then BaseBinsURL:='linuxarmcrossbins';
-                    end
-                    else
-                      if GetTargetOS=GetOS(TOS.freebsd) then
-                      begin
-                        if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='freebsdx64crossbins';
-                      end
-                      else
-                        if GetTargetOS=GetOS(TOS.solaris) then
-                        begin
-                          {if FPCupManager.SolarisOI then}
-                          begin
-                            if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='solarisoix64crossbins';
-                          end;
-                        end
-                        else
-                          if GetTargetOS=GetOS(TOS.darwin) then
-                          begin
-                            if GetTargetCPU=GetCPU(TCPU.i386) then BaseBinsURL:='darwini386crossbins';
-                            if GetTargetCPU=GetCPU(TCPU.x86_64) then BaseBinsURL:='darwinx64crossbins';
-                            if GetTargetCPU=GetCPU(TCPU.aarch64) then BaseBinsURL:='darwinarm64crossbins';
-                          end;
+                MissingCrossLibs:=true;// force the download of embedded libs if not there ... if this fails, don't worry, building will go on
+            end;
 
+            // Get tools !!
+            if (MissingCrossBins OR MissingCrossLibs) then
+            begin
 
-              // no cross-bins available
-              if (Length(BaseBinsURL)=0) then
+              // many files to unpack for Darwin : do not show progress of unpacking files when unpacking for Darwin.
+              verbose:=(FPCupManager.CrossOS_Target<>TOS.darwin);
+
+              if MissingCrossBins then
               begin
-                ShowMessage('No tools available online. You could do a feature request ... ;-)');
-                exit;
-              end;
+                AddMessage('Going to look for the right cross-bins. Can (will) take some time !',True);
+                AddMessage('Looking for: '+BinsFileName, True);
 
-              AddMessage('Looking for: '+BinsFileName, True);
+                success:=FPCupManager.GetCrossBinsURL({%H-}BaseBinsURL,BinsFileName);
 
-              MajorVersion:=1;
-              for MinorVersion:=2 downto 0 do
-              begin
-
-                //Add version
-                BinsURL:=BaseBinsURL+'_v'+InttoStr(MajorVersion)+'.'+InttoStr(MinorVersion);
-
-                success:=false;
-
-                TargetFile:=BinsFileName;
-
-                DownloadURL:=FPCUPGITREPOAPI+'/tags/'+BinsURL;
-
-                AddMessage('Looking for bins in: '+DownloadURL, True);
-
-                aList:=TStringList.Create;
-                try
-                  aList.Clear;
-                  try
-                    GetGitHubFileList(DownloadURL,aList,FPCupManager.UseWget,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
-                  except
-                    on E : Exception do
-                    begin
-                      //AddMessage('Could not get binutils file list from '+DownloadURL+'.');
-                      //continue;
-                    end;
-                  end;
-                  //Prefer a zip-file
-                  for i:=0 to Pred(aList.Count) do
-                  begin
-                    if AnsiContainsText(aList[i],TargetFile+'.zip') then
-                    begin
-                      TargetFile := TargetFile+'.zip';
-                      success:=true;
-                      break;
-                    end;
-                  end;
-                  if NOT success then
-                  begin
-                    for i:=0 to Pred(aList.Count) do
-                    begin
-                      if AnsiContainsText(aList[i],TargetFile) then
-                      begin
-                        TargetFile := FileNameFromURL(aList[i]);
-                        success:=true;
-                        break;
-                      end;
-                    end;
-                  end;
-
-                finally
-                  aList.Free;
+                // no cross-bins available
+                if (NOT success) then
+                begin
+                  ShowMessage('No binary tools available online. You could do a feature request ... ;-)');
+                  exit;
                 end;
 
                 if success then
                 begin
-                  DownloadURL:=FPCUPGITREPO+'/releases/download/'+BinsURL+'/'+TargetFile;
-                  AddMessage('Found correct online binutils at: '+DownloadURL);
+                  AddMessage('Found correct online binutils at: '+BaseBinsURL);
                   AddMessage('Going to download the cross-bins. Can (will) take some time !',True);
-                  TargetFile := IncludeTrailingPathDelimiter(FPCupManager.TempDirectory)+TargetFile;
-                  SysUtils.DeleteFile(TargetFile);
-                  success:=DownLoad(FPCupManager.UseWget,DownloadURL,TargetFile,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
+                  ToolTargetFile := IncludeTrailingPathDelimiter(FPCupManager.TempDirectory)+BinsFileName;
+                  SysUtils.DeleteFile(ToolTargetFile);
+                  success:=false;
+                  {$IF (DEFINED(WINDOWS)) OR (DEFINED(LINUX))}
+                  frmSeq:= TfrmSequencial.Create(Self);
+                  try
+                    frmSeq.AddDownload(BaseBinsURL,ToolTargetFile);
+                    frmSeq.ShowModal;
+                    success:=frmSeq.Success;
+                  finally
+                    frmSeq.Free;
+                  end;
+                  {$ENDIF}
+                  if (NOT success) then
+                  begin
+                    SysUtils.DeleteFile(ToolTargetFile);
+                    success:=DownLoad(FPCupManager.UseWget,BaseBinsURL,ToolTargetFile,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
+                  end;
                   if success then AddMessage('Download successfull !');
                 end;
 
                 if success then
                 begin
-                  ZipFile:=(ExtractFileExt(TargetFile)='.zip');
-                  TargetPath:=IncludeTrailingPathDelimiter(sInstallDir);
+                  ZipFile:=(ExtractFileExt(ToolTargetFile)='.zip');
+                  ToolTargetPath:=IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory);
                   {$ifndef MSWINDOWS}
-                  TargetPath:=IncludeTrailingPathDelimiter(sInstallDir)+BinPath+DirectorySeparator;
+                  ToolTargetPath:=IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+BinPath+DirectorySeparator;
                   {$endif}
-                  ForceDirectoriesSafe(TargetPath);
+                  ForceDirectoriesSafe(ToolTargetPath);
 
-                  AddMessage('Going to extract archive into '+TargetPath);
+                  AddMessage('Going to extract archive into '+ToolTargetPath);
 
                   if ZipFile then
                   begin
                     with TNormalUnzipper.Create do
                     begin
                       try
-                        success:=DoUnZip(TargetFile,TargetPath,[]);
+                        success:=DoUnZip(ToolTargetFile,ToolTargetPath,[]);
                       finally
                         Free;
                       end;
@@ -3320,7 +3274,7 @@ begin
                   begin
                     {$ifdef MSWINDOWS}
                     if (not verbose) then AddMessage('Please wait: going to unpack binary tools archive.');
-                    success:={%H-}RunCommand('"C:\Program Files (x86)\WinRAR\WinRAR.exe" x '+TargetFile+' "'+TargetPath+'"',s);
+                    success:={%H-}RunCommand('"C:\Program Files (x86)\WinRAR\WinRAR.exe" x '+ToolTargetFile+' "'+ToolTargetPath+'"',s);
                     if (NOT success) then
                     {$endif}
                     begin
@@ -3333,13 +3287,13 @@ begin
                       if success then
                       begin
                         if (not verbose) then AddMessage('Please wait: going to unpack binary tools archive.');
-                        success:={%H-}RunCommand(UnZipper + ' x "' + TargetFile + '" "' + TargetPath + '"',s);
+                        success:={%H-}RunCommand(UnZipper + ' x "' + ToolTargetFile + '" "' + ToolTargetPath + '"',s);
                       end else AddMessage('Error: '+UnZipper+' not found on system. Cannot unpack cross-tools !');
                     end;
                   end;
                 end;
 
-                SysUtils.DeleteFile(TargetFile);
+                SysUtils.DeleteFile(ToolTargetFile);
 
                 if success then
                 begin
@@ -3347,8 +3301,8 @@ begin
                   try
                     aList.Add('These binary utilities were happily provided to you by fpcupdeluxe.');
                     aList.Add('You can find them at:');
-                    aList.Add(DownloadURL);
-                    s:=IncludeTrailingPathDelimiter(sInstallDir)+BinPath+DirectorySeparator+FPCUP_ACKNOWLEDGE;
+                    aList.Add(BaseBinsURL);
+                    s:=IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+BinPath+DirectorySeparator+FPCUP_ACKNOWLEDGE;
                     If DirectoryExists(ExtractFileDir(s)) then
                     begin
                       SysUtils.DeleteFile(s);
@@ -3358,7 +3312,7 @@ begin
                     aList.Free;
                   end;
                   {$IFDEF UNIX}
-                  aList:=FindAllFiles(TargetPath);
+                  aList:=FindAllFiles(ToolTargetPath);
                   try
                     if (aList.Count > 0) then
                     begin
@@ -3372,136 +3326,69 @@ begin
                   end;
                   {$ENDIF}
                   MissingCrossBins:=False;
-                  break;
                 end;
               end;
-            end;
 
-            // force the download of embedded libs if not there ... if this fails, don't worry, building will go on
-            if (DirectoryIsEmpty(IncludeTrailingPathDelimiter(sInstallDir)+LibPath)) AND (FPCupManager.CrossOS_Target=TOS.embedded)
-              then MissingCrossLibs:=true;
+              // force the download of embedded libs if not there ... if this fails, don't worry, building will go on
+              if (DirectoryIsEmpty(IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+LibPath)) AND (FPCupManager.CrossOS_Target=TOS.embedded)
+                then MissingCrossLibs:=true;
 
-            if MissingCrossLibs then
-            begin
-              (*
-              if ((FPCupManager.CrossCPU_Target=TCPU.arm) AND (FPCupManager.CrossOS_Target=TOS.freertos)) then
+
+              if MissingCrossLibs then
               begin
-                // Use deticated libs by Michael Ring !
-                s:='10.4.3';
-                MinorVersion:=4;
-                LibsFileName:='FreeRTOS-'+s+'-for-FreePascal.zip';
-                DownloadURL:='https://github.com/michael-ring/freertos4fpc/releases/download/v'+s+'-'+InttoStr(MinorVersion)+'/'+LibsFileName;
-                TargetFile := IncludeTrailingPathDelimiter(FPCupManager.TempDirectory)+LibsFileName;
-                SysUtils.DeleteFile(TargetFile);
-                success:=DownLoad(FPCupManager.UseWget,DownloadURL,TargetFile,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
+                AddMessage('Going to look for the right cross-libraries. Can (will) take some time !',True);
+                AddMessage('Looking for: '+LibsFileName, True);
+
+                success:=FPCupManager.GetCrossLibsURL({%H-}BaseLibsURL,LibsFileName);
+
+                // no cross-libraries available
+                if (NOT success) then
+                begin
+                  // Do not fail !!
+                  //ShowMessage('No libraries available online. You could do a feature request ... ;-)');
+                  //exit;
+                end;
+
                 if success then
                 begin
-                  AddMessage('Download successfull !');
-                  TargetPath:=IncludeTrailingPathDelimiter(sInstallDir)+LibPath+DirectorySeparator;
-                  ForceDirectoriesSafe(IncludeTrailingPathDelimiter(sInstallDir)+LibPath);
-                  with TNormalUnzipper.Create do
-                  begin
-                    try
-                      success:=DoUnZip(TargetFile,TargetPath,[]);
-                    finally
-                      Free;
-                    end;
-                  end;
-                  if success then
-                  begin
-                    SysUtils.DeleteFile(TargetFile);
-                    MissingCrossLibs:=False;
-                  end;
-                end;
-              end;
-              *)
-            end;
-
-            if MissingCrossLibs then
-            begin
-              AddMessage('Going to look for the right cross-libraries. Can (will) take some time !',True);
-
-
-              AddMessage('Looking for: '+LibsFileName,True);
-
-              MajorVersion:=1;
-              for MinorVersion:=3 downto 0 do
-              begin
-                LibsURL:='crosslibs_v'+InttoStr(MajorVersion)+'.'+InttoStr(MinorVersion);
-
-                TargetFile:=LibsFileName;
-
-                DownloadURL:=FPCUPGITREPOAPI+'/tags/'+LibsURL;
-
-                AddMessage('Looking for libs in: '+DownloadURL, True);
-
-                success:=false;
-                aList:=TStringList.Create;
-                try
-                  aList.Clear;
+                  AddMessage('Found correct online libraries at: '+BaseLibsURL);
+                  AddMessage('Going to download the cross-libs. Can (will) take some time !',True);
+                  ToolTargetFile := IncludeTrailingPathDelimiter(FPCupManager.TempDirectory)+LibsFileName;
+                  SysUtils.DeleteFile(ToolTargetFile);
+                  success:=false;
+                  {$IF (DEFINED(WINDOWS)) OR (DEFINED(LINUX))}
+                  frmSeq:= TfrmSequencial.Create(Self);
                   try
-                    GetGitHubFileList(DownloadURL,aList,FPCupManager.UseWget,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
-                  except
-                    on E : Exception do
-                    begin
-                      //AddMessage('Could not get libraries file list from '+DownloadURL+'.');
-                      //continue;
-                    end;
+                    frmSeq.AddDownload(BaseLibsURL,ToolTargetFile);
+                    frmSeq.ShowModal;
+                    success:=frmSeq.Success;
+                  finally
+                    frmSeq.Free;
                   end;
-
-                  //Prefer a zip-file
-                  for i:=0 to Pred(aList.Count) do
+                  {$ENDIF}
+                  if (NOT success) then
                   begin
-                    if Pos(TargetFile+'.zip',aList[i])>0 then
-                    begin
-                      TargetFile := TargetFile+'.zip';
-                      success:=true;
-                      break;
-                    end;
+                    SysUtils.DeleteFile(ToolTargetFile);
+                    success:=DownLoad(FPCupManager.UseWget,BaseLibsURL,ToolTargetFile,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
                   end;
-                  if NOT success then
-                  begin
-                    for i:=0 to Pred(aList.Count) do
-                    begin
-                      s:=aList[i];
-                      if Pos(TargetFile,s)>0 then
-                      begin
-                        TargetFile := FileNameFromURL(s);
-                        success:=true;
-                        break;
-                      end;
-                    end;
-                  end;
-                finally
-                  aList.Free;
-                end;
-
-                if success then
-                begin
-                  DownloadURL:=FPCUPGITREPO+'/releases/download/'+LibsURL+'/'+TargetFile;
-                  AddMessage('Found correct online libraries at: '+DownloadURL);
-                  AddMessage('Going to download the cross-libraries. Can (will) take some time !',True);
-                  TargetFile := IncludeTrailingPathDelimiter(FPCupManager.TempDirectory)+TargetFile;
-                  SysUtils.DeleteFile(TargetFile);
-                  success:=DownLoad(FPCupManager.UseWget,DownloadURL,TargetFile,FPCupManager.HTTPProxyHost,FPCupManager.HTTPProxyPort,FPCupManager.HTTPProxyUser,FPCupManager.HTTPProxyPassword);
                   if success then AddMessage('Download successfull !');
                 end;
 
                 if success then
                 begin
-                  ZipFile:=(ExtractFileExt(TargetFile)='.zip');
-                  TargetPath:=IncludeTrailingPathDelimiter(sInstallDir);
-                  //TargetPath:=IncludeTrailingPathDelimiter(sInstallDir)+LibPath+DirectorySeparator;
-                  //ForceDirectoriesSafe(IncludeTrailingPathDelimiter(sInstallDir)+LibPath);
+                  ZipFile:=(ExtractFileExt(ToolTargetFile)='.zip');
+                  ToolTargetPath:=IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory);
+                  //ToolTargetPath:=IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+LibPath+DirectorySeparator;
+                  ForceDirectoriesSafe(ToolTargetPath);
 
-                  AddMessage('Going to extract archive into '+TargetPath);
+                  AddMessage('Going to extract archive into '+ToolTargetPath);
 
                   if ZipFile then
                   begin
                     with TNormalUnzipper.Create do
                     begin
                       try
-                        success:=DoUnZip(TargetFile,TargetPath,[]);
+                        success:=DoUnZip(ToolTargetFile,ToolTargetPath,[]);
                       finally
                         Free;
                       end;
@@ -3511,7 +3398,7 @@ begin
                   begin
                     {$ifdef MSWINDOWS}
                     if (not verbose) then AddMessage('Please wait: going to unpack library files archive.');
-                    success:={%H-}RunCommand('"C:\Program Files (x86)\WinRAR\WinRAR.exe" x '+TargetFile+' "'+TargetPath+'"',s);
+                    success:={%H-}RunCommand('"C:\Program Files (x86)\WinRAR\WinRAR.exe" x '+ToolTargetFile+' "'+ToolTargetPath+'"',s);
                     if (NOT success) then
                     {$endif}
                     begin
@@ -3524,12 +3411,12 @@ begin
                       if success then
                       begin
                         if (not verbose) then AddMessage('Please wait: going to unpack library files archive.');
-                        success:={%H-}RunCommand(UnZipper + ' x "' + TargetFile + '" "' + TargetPath + '"',s);
+                        success:={%H-}RunCommand(UnZipper + ' x "' + ToolTargetFile + '" "' + ToolTargetPath + '"',s);
                       end else AddMessage('Error: '+UnZipper+' not found on system. Cannot unpack cross-tools !');
                     end;
                   end;
                 end;
-                SysUtils.DeleteFile(TargetFile);
+                SysUtils.DeleteFile(ToolTargetFile);
 
                 if success then
                 begin
@@ -3537,8 +3424,8 @@ begin
                   try
                     aList.Add('These libraries were happily provided to you by fpcupdeluxe.');
                     aList.Add('You can find them at:');
-                    aList.Add(DownloadURL);
-                    s:=IncludeTrailingPathDelimiter(sInstallDir)+LibPath+DirectorySeparator+FPCUP_ACKNOWLEDGE;
+                    aList.Add(BaseLibsURL);
+                    s:=IncludeTrailingPathDelimiter(FPCupManager.BaseDirectory)+LibPath+DirectorySeparator+FPCUP_ACKNOWLEDGE;
                     if DirectoryExists(ExtractFileDir(s)) then
                     begin
                       SysUtils.DeleteFile(s);
@@ -3548,36 +3435,38 @@ begin
                     aList.Free;
                   end;
                   MissingCrossLibs:=False;
-                  break;
                 end;
-              end;
 
-              // as libraries are not always needed for embedded, end with success even if the above has failed
-              if FPCupManager.CrossOS_Target=TOS.embedded then
-              begin
-                success:=true;
-                MissingCrossLibs:=False;
-              end;
+                // as libraries are not always needed for embedded, end with success even if the above has failed
+                if FPCupManager.CrossOS_Target=TOS.embedded then
+                begin
+                  success:=true;
+                  MissingCrossLibs:=False;
+                end;
 
+              end;
             end;
-
-            if success then
-            begin
-              AddMessage('Successfully extracted cross-tools.');
-              // run again with the correct libs and binutils
-              FPCVersionLabel.Font.Color:=clDefault;
-              LazarusVersionLabel.Font.Color:=clDefault;
-              AddMessage('Got all tools now. Building a cross-compiler for '+GetOS(FPCupManager.CrossOS_Target)+'-'+GetCPU(FPCupManager.CrossCPU_Target),True);
-              memoSummary.Lines.Append('Got all tools now. Start building cross-compiler.');
-              if Assigned(FPCupManager.Sequencer) then FPCupManager.Sequencer.ResetAllExecuted;
-
-              AddMessage(sStatus);
-              memoSummary.Lines.Append(sStatus);
-
-              success:= RealRun;
-
-            end else AddMessage('No luck in getting then cross-tools ... aborting.');
           end;
+
+          if success then
+          begin
+            AddMessage('Successfully extracted cross-tools.');
+            // run again with the correct libs and binutils
+            FPCVersionLabel.Font.Color:=clDefault;
+            LazarusVersionLabel.Font.Color:=clDefault;
+            AddMessage('Got all tools now. Building a cross-compiler for '+GetOS(FPCupManager.CrossOS_Target)+'-'+GetCPU(FPCupManager.CrossCPU_Target),True);
+            memoSummary.Lines.Append('Got all tools. Started to build cross-compiler.');
+            if Assigned(FPCupManager.Sequencer) then FPCupManager.Sequencer.ResetAllExecuted;
+
+            AddMessage(sStatus);
+            memoSummary.Lines.Append(sStatus);
+
+            MissingCrossBins:=false;
+            MissingCrossLibs:=false;
+
+            success:= RealRun;
+          end
+          else AddMessage('No luck in getting then cross-tools ... aborting.');
         end
         else
         begin
@@ -3617,19 +3506,23 @@ begin
     exit;
   end;
 
-  s:='';
-  if Sender=BitBtnFPCOnly then s:='Going to install/update FPC.';
-  if Sender=BitBtnLazarusOnly then s:='Going to install/update Lazarus.';
-  if Sender=BitBtnFPCandLazarus then s:='Going to install/update FPC and Lazarus.';
-  s:=s+sLineBreak;
-  s:=s+'Install directory: '+Self.sInstallDir;
-  s:=s+sLineBreak;
-  s:=s+'Do you want to continue ?';
-  if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then exit;
+  if Form2.AskConfirmation then
+  begin
+    s:='';
+    if Sender=BitBtnFPCOnly then s:='Going to install/update FPC.';
+    if Sender=BitBtnLazarusOnly then s:='Going to install/update Lazarus.';
+    if Sender=BitBtnFPCandLazarus then s:='Going to install/update FPC and Lazarus.';
+    s:=s+sLineBreak;
+    s:=s+'Install directory: '+Self.sInstallDir;
+    s:=s+sLineBreak;
+    s:=s+'Do you want to continue ?';
+    if (MessageDlg(s,mtConfirmation,[mbYes, mbNo],0)<>mrYes) then exit;
+  end;
 
   DisEnable(Sender,False);
   try
-    PrepareRun;
+
+    if (NOT PrepareRun(Sender)) then exit;
 
     s:='';
 
@@ -3699,7 +3592,7 @@ begin
 
     end;
 
-    if NOT Form2.IncludeHelp then
+    if (NOT Form2.IncludeHelp) then
     begin
       if ((Sender=BitBtnFPCOnly) OR (Sender=BitBtnFPCandLazarus)) then FPCupManager.SkipModules:=FPCupManager.SkipModules+','+_HELPFPC;
       if ((Sender=BitBtnLazarusOnly) OR (Sender=BitBtnFPCandLazarus)) then FPCupManager.SkipModules:=FPCupManager.SkipModules+','+_HELPLAZARUS;
@@ -3770,7 +3663,7 @@ begin
   Form2.SetCrossTarget(FPCupManager,FPCupManager.CrossCPU_Target,FPCupManager.CrossOS_Target);
 
   Form2.ShowModal;
-  if Form2.ModalResult=mrOk then
+  if (Form2.ModalResult=mrOk) then
   begin
     FPCupManager.ExportOnly:=(NOT Form2.Repo);
     FPCupManager.HTTPProxyHost:=Form2.HTTPProxyHost;
@@ -3787,7 +3680,11 @@ procedure TForm1.btnLogClick(Sender: TObject);
 begin
   if (Sender=btnClearLog) then
   begin
+    {$ifdef READER}
+    CommandOutputScreen.Clear;
+    {$else}
     CommandOutputScreen.ClearAll;
+    {$endif}
     memoSummary.Clear;
   end;
   if (Sender=btnSendLog) then
@@ -3807,6 +3704,7 @@ end;
 procedure TForm1.Edit1Change(Sender: TObject);
 begin
   sInstallDir:=SetDirSeparators(InstallDirEdit.Text);
+  Form2.ResetAll;
   if DirectoryExists(sInstallDir) then GetFPCUPSettings(IncludeTrailingPathDelimiter(sInstallDir));
 end;
 
@@ -3845,6 +3743,12 @@ begin
     with TMemIniFile.Create(SafeGetApplicationPath+installerUniversal.DELUXEFILENAME) do
     try
       WriteString('General','InstallDirectory',sInstallDir);
+
+      // Termorary store of target in app directory
+      WriteBool('General','Gitlab',chkGitlab.Checked);
+      WriteString('General','fpcVersion',FPCTarget);
+      WriteString('General','lazVersion',LazarusTarget);
+
       {$ifdef RemoteLog}
       WriteBool('General','ConsentWarning',false);
       {$endif}
@@ -3853,10 +3757,13 @@ begin
       WriteString('General','Language',sLanguage);
       {$endif}
 
-      WriteString('ProxySettings','HTTPProxyURL',FPCupManager.HTTPProxyHost);
-      WriteInteger('ProxySettings','HTTPProxyPort',FPCupManager.HTTPProxyPort);
-      WriteString('ProxySettings','HTTPProxyUser',FPCupManager.HTTPProxyUser);
-      WriteString('ProxySettings','HTTPProxyPass',FPCupManager.HTTPProxyPassword);
+      if Assigned(FPCupManager) then
+      begin
+        WriteString('ProxySettings','HTTPProxyURL',FPCupManager.HTTPProxyHost);
+        WriteInteger('ProxySettings','HTTPProxyPort',FPCupManager.HTTPProxyPort);
+        WriteString('ProxySettings','HTTPProxyUser',FPCupManager.HTTPProxyUser);
+        WriteString('ProxySettings','HTTPProxyPass',FPCupManager.HTTPProxyPassword);
+      end;
 
       UpdateFile;
     finally
@@ -3895,15 +3802,37 @@ begin
   end;
 end;
 
-procedure TForm1.PrepareRun;
+function TForm1.PrepareRun(Sender: TObject):boolean;
+var
+  s:string;
 begin
+  result:=false;
+
+  s:='';
+  if (Sender<>BitBtnLazarusOnly) AND AnsiEndsText('.svn',FPCTarget) then
+  begin
+    s:='You have selected a FPC source from SVN';
+  end;
+  if (Sender<>BitBtnFPCOnly) AND AnsiEndsText('.svn',LazarusTarget) then
+  begin
+    if (Length(s)>0) then
+      s:=s+' and y'
+    else
+      s:='Y';
+    s:=s+'ou have selected a Lazarus source from SVN';
+  end;
+  if (Length(s)>0) then
+  begin
+    s:=s+'.'+LineEnding+'Please select another source: SVN is no longer available.';
+    Application.MessageBox(PChar(s), PChar('SVN source error'), MB_ICONSTOP);
+    exit;
+  end;
+
   FPCVersionLabel.Font.Color:=clDefault;
   LazarusVersionLabel.Font.Color:=clDefault;
 
   RealFPCURL.Color:=clDefault;
-  RealFPCURL.ReadOnly:=true;
   RealLazURL.Color:=clDefault;
-  RealLazURL.ReadOnly:=true;
 
   if CheckAutoClear.Checked then btnClearLog.Click;
 
@@ -3917,10 +3846,12 @@ begin
 
   FPCupManager.SoftFloat:=Form2.UseSoftFloat;
   FPCupManager.OnlinePatching:=Form2.OnlinePatching;
+  FPCupManager.ReApplyLocalChanges:=Form2.ApplyLocalChanges;
 
   FPCupManager.OnlyModules:='';
   FPCupManager.IncludeModules:='';
   FPCupManager.SkipModules:='';
+
   FPCupManager.CrossCPU_Target:=TCPU.cpuNone;
   FPCupManager.CrossOS_Target:=TOS.osNone;
   FPCupManager.CrossOS_SubArch:=TSubarch.saNone;
@@ -3945,11 +3876,11 @@ begin
   FPCupManager.FPCDesiredRevision:='';
   FPCupManager.LazarusDesiredRevision:='';
 
-  FPCupManager.FPCDesiredBranch:='';
-  FPCupManager.LazarusDesiredBranch:='';
+  FPCupManager.FPCBranch:='';
+  FPCupManager.LazarusBranch:='';
 
-  FPCupManager.FPCDesiredTag:='';
-  FPCupManager.LazarusDesiredTag:='';
+  FPCupManager.FPCTag:='';
+  FPCupManager.LazarusTag:='';
 
   {$IFDEF DEBUG}
   FPCupManager.Verbose:=True;
@@ -4039,13 +3970,12 @@ begin
   StatusMessage.Text:=sStatus;
 
   if CheckAutoClear.Checked then memoSummary.Lines.Clear;
+
+  result:=true;
 end;
 
 function TForm1.RealRun:boolean;
 var
-  {$ifdef RemoteLog}
-  aVersion:string;
-  {$endif}
   s:string;
   aLazarusVersion:word;
   aRecordNumber:PtrUInt;
@@ -4054,7 +3984,8 @@ begin
 
   if Pos(' ',FPCupManager.BaseDirectory)>0 then
   begin
-    if (MessageDlg('Having a space in your install path is ill-advised !'+sLineBreak+'Do you want to continue ?',mtConfirmation,[mbYes, mbNo],0)<>mrYes) then exit;
+    if (MessageDlg('Having a space in your install path is ill-advised !'+sLineBreak+'Do you want to continue ?',mtConfirmation,[mbYes, mbNo],0)<>mrYes) then
+      exit;
   end;
 
   StatusMessage.Text:=sStatus;
@@ -4072,50 +4003,38 @@ begin
   FPCupManager.LazarusOpt:=FPCupManager.LazarusOpt+' -Fl/usr/local/lib -Fl/usr/X11R6/lib -Fl/usr/pkg/lib -Fl/usr/X11R7/lib';
   {$endif}
 
-  if chkGitlab.Checked then
+
+  if AnsiEndsText(GITLABEXTENSION,FPCTarget) then
   begin
-    FPCupManager.FPCURL:=FPCGITLABREPO;
-    FPCupManager.LazarusURL:=LAZARUSGITLABREPO;
-    if FPCTarget='trunk' then
-      FPCupManager.FPCDesiredBranch:='main'
-    else
-      FPCupManager.FPCDesiredTag:=installerUniversal.GetAlias('fpcTAG',FPCTarget);
-    if LazarusTarget='trunk' then
-      FPCupManager.LazarusDesiredBranch:='trunk'
-    else
-      FPCupManager.LazarusDesiredTag:=installerUniversal.GetAlias('lazTAG',LazarusTarget);
+    FPCupManager.FPCTag:=FPCTarget;
   end
   else
   begin
     FPCupManager.FPCURL:=FPCTarget;
-    FPCupManager.LazarusURL:=LazarusTarget;
-
-    // for https://github.com/graemeg (FPC/Lazarus mirrors of GitHub) ... always get the right branch
-    if (Pos('github.com/graemeg',FPCupManager.FPCURL)>0) then FPCupManager.FPCDesiredBranch:='master';
-    if (Pos('github.com/graemeg',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusDesiredBranch:='upstream';
-
-    // for https://github.com/newpascal (FPC/Lazarus NP mirrors of GitHub) ... always get the right branch
-    if (Pos('github.com/newpascal',FPCupManager.FPCURL)>0) then FPCupManager.FPCDesiredBranch:='release';
-    if (Pos('github.com/newpascal',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusDesiredBranch:='release';
-    //if (Pos('github.com/newpascal',FPCupManager.FPCURL>0) then FPCupManager.FPCDesiredBranch:='freepascal';
-    //if (Pos('github.com/newpascal',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusDesiredBranch:='lazarus';
-    if (Pos('github.com/LongDirtyAnimAlf',FPCupManager.FPCURL)>0) then FPCupManager.FPCDesiredBranch:='master';
-    if (Pos('github.com/LongDirtyAnimAlf',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusDesiredBranch:='upstream';
-    if (Pos('github.com/LongDirtyAnimAlf/lazarussource',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusDesiredBranch:='master';
+    if (Pos('github.com/LongDirtyAnimAlf',FPCupManager.FPCURL)>0) then FPCupManager.FPCBranch:='master';
   end;
 
-
+  if AnsiEndsText(GITLABEXTENSION,LazarusTarget) then
+  begin
+    FPCupManager.LazarusTag:=LazarusTarget;
+  end
+  else
+  begin
+    FPCupManager.LazarusURL:=LazarusTarget;
+    if (Pos('github.com/LongDirtyAnimAlf',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusBranch:='upstream';
+    if (Pos('github.com/LongDirtyAnimAlf/lazarussource',FPCupManager.LazarusURL)>0) then FPCupManager.LazarusBranch:='master';
+  end;
 
   // branch and revision overrides from setup+
   s:=Form2.FPCRevision;
   if Length(s)>0 then FPCupManager.FPCDesiredRevision:=s;
   s:=Form2.FPCBranch;
-  if Length(s)>0 then FPCupManager.FPCDesiredBranch:=s;
+  if Length(s)>0 then FPCupManager.FPCBranch:=s;
 
   s:=Form2.LazarusRevision;
   if Length(s)>0 then FPCupManager.LazarusDesiredRevision:=s;
   s:=Form2.LazarusBranch;
-  if Length(s)>0 then FPCupManager.LazarusDesiredBranch:=s;
+  if Length(s)>0 then FPCupManager.LazarusBranch:=s;
 
   // overrides for old versions of Lazarus
   aLazarusVersion:=CalculateNumericalVersion(LazarusTarget);
@@ -4165,29 +4084,41 @@ begin
   Application.ProcessMessages;
 
   {$ifdef RemoteLog}
-  aVersion:=FPCTarget;
-  if (ListBoxFPCTarget.ItemIndex<>-1) then aVersion:=ListBoxFPCTarget.GetSelectedText;
-  aDataClient.UpInfo.FPCVersion:=ExtractFileName(aVersion);
-
-  aVersion:=LazarusTarget;
-  if (ListBoxLazarusTarget.ItemIndex<>-1) then aVersion:=ListBoxLazarusTarget.GetSelectedText;
-  aDataClient.UpInfo.LazarusVersion:=ExtractFileName(aVersion);
+  aDataClient.UpInfo.FPCVersion:=FPCTarget;
+  aDataClient.UpInfo.LazarusVersion:=LazarusTarget;
 
   aDataClient.UpInfo.UpInstallDir:=FPCupManager.BaseDirectory;
   {$endif}
 
   AddMessage(DateTimeToStr(now)+': '+BeginSnippet+' V'+RevisionStr+' ('+VersionDate+') started.');
   AddMessage('FPCUPdeluxe V'+DELUXEVERSION+' for '+GetTargetCPUOS+' running on '+GetDistro);
+  AddMessage('Build with: FPC '+GetFPCBuildVersion + ' on Win10 x86_64');
   AddMessage('');
 
+  BitBtnHalt.Enabled:=true;
   try
+    {$ifdef READER}
+    try
+      //Form1.SetFocusedControl(BitBtnHalt);
+      CommandOutputScreen.Enabled:=false;
+      result:=FPCupManager.Run;
+    finally
+      //Form1.SetFocusedControl(btnInstallDirSelect);
+      CommandOutputScreen.Enabled:=true;
+    end;
+    {$else}
     result:=FPCupManager.Run;
+    {$endif}
     if (NOT result) then
     begin
       AddMessage('');
       AddMessage('');
-      if MissingCrossBins then AddMessage('Fpcupdeluxe failed due to missing cross binary tools.')
-      else if MissingCrossLibs then AddMessage('Fpcupdeluxe failed due to missing cross libraries.')
+      if (MissingCrossBins OR MissingCrossLibs) then
+      begin
+        if MissingCrossBins then AddMessage('fpcupdeluxe: ERROR: Failure due to missing cross binary tools.');
+        if MissingCrossLibs then AddMessage('fpcupdeluxe: ERROR: Failure due to missing cross libraries.');
+        AddMessage('');
+      end
       else
       begin
         AddMessage('ERROR: Fpcupdeluxe fatal error !');
@@ -4255,21 +4186,26 @@ begin
     StatusMessage.Color:=clRed;
   end;
 
+  BitBtnHalt.Enabled:=false;
 end;
 
 function TForm1.GetFPCUPSettings(IniDirectory:string):boolean;
 var
-  aTarget,aURL:string;
+  aStoredTarget:string;
   Cores,MemAvailable,SwapAvailable:DWord;
 begin
   result:=FileExists(IniDirectory+installerUniversal.DELUXEFILENAME);
 
+  {$ifdef READER}
+  CommandOutputScreen.Clear;
+  {$else}
   CommandOutputScreen.ClearAll;
-
+  {$endif}
   AddMessage('Welcome @ FPCUPdeluxe.');
   AddMessage(Self.Caption);
   {$ifndef NetBSD}
   AddMessage('Running on '+GetDistro);
+  AddMessage('Build with: FPC '+GetFPCBuildVersion + ' on Win10 x86_64');
   {$ifdef FreeBSD}
   AddMessage('Detected mayor FreeBSD version '+InttoStr(GetFreeBSDVersion));
   {$endif FreeBSD}
@@ -4319,80 +4255,41 @@ begin
   begin
     with TIniFile.Create(IniDirectory+installerUniversal.DELUXEFILENAME) do
     try
-      AddMessage('Current install drectory: '+sInstallDir);
+      AddMessage('Current install directory: '+sInstallDir);
       AddMessage('');
       AddMessage('Got settings from install directory');
       AddMessage('');
 
       chkGitlab.Checked:=ReadBool('General','Gitlab',chkGitlab.Checked);
 
-      FillSourceListboxes;
-
       // get names of cross-compilers
       AutoUpdateCrossCompiler(nil);
 
       FPCupManager.ExportOnly:=(NOT ReadBool('General','GetRepo',True));
 
-      //Default FPC target
-
-      aTarget:='stable';
-      {$ifdef CPUAARCH64}
-      aTarget:='fixes';
-      {$endif}
-      {$IF DEFINED(CPUPOWERPC64) AND DEFINED(FPC_ABI_ELFV2)}
-      aTarget:='fixes';
-      {$ENDIF}
-      {$ifdef Haiku}
-      aTarget:='stable.git';
-      {$endif}
-
-      if chkGitlab.Checked then
+      // Read FPC target from settngs
+      aStoredTarget:=ReadString('Target','fpcVersion','');
+      if (Length(aStoredTarget)=0) then
       begin
-        aURL:=installerUniversal.GetAlias('fpcTAG',aTarget);
-        aURL:=ReadString('URL','fpcTAG',aURL);
-      end
-      else
-      begin
-        aURL:=installerUniversal.GetAlias('fpcURL',aTarget);
-        aURL:=ReadString('URL','fpcURL',aURL);
-        // correct for [unsafe] URL in old fpcup.ini
-        if Pos('http://svn.freepascal.org',aURL)>0 then aURL:=StringReplace(aURL,'http://','https://',[rfIgnoreCase]);
-        aURL:=ExcludeTrailingPathDelimiter(aURL);
+        //Fallback to previous settings
+        aStoredTarget:=ReadString('URL','fpcURL','');
+        if (Length(aStoredTarget)>0) then
+          aStoredTarget:=installerUniversal.GetKeyword(FPCURLLOOKUPMAGIC,aStoredTarget);
       end;
-      FPCTarget:=aURL;
+      if (Length(aStoredTarget)<>0) then
+        FPCTarget:=aStoredTarget;
 
-      //Default Lazarus target
-
-      {$ifdef LCLQT5}
-      aTarget:='fixes';
-      {$endif}
-      {$ifdef LCLCOCOA}
-      aTarget:='fixes';
-      {$endif}
-
-      {$ifdef Haiku}
-      {$ifdef CPUX86}
-      aTarget:='stable.git';
-      {$endif}
-      {$ifdef CPUX86_64}
-      aTarget:='trunk.git';
-      {$endif}
-      {$endif}
-
-      if chkGitlab.Checked then
+      // Read Lazarus target from settngs
+      aStoredTarget:=ReadString('Target','lazVersion','');
+      if (Length(aStoredTarget)=0) then
       begin
-        aURL:=installerUniversal.GetAlias('lazTAG',aTarget);
-        aURL:=ReadString('URL','lazTAG',aURL);
-      end
-      else
-      begin
-        aURL:=installerUniversal.GetAlias('lazURL',aTarget);
-        aURL:=ReadString('URL','lazURL',aURL);
-        // correct for [unsafe] URL in old fpcup.ini
-        if Pos('http://svn.freepascal.org',aURL)>0 then aURL:=StringReplace(aURL,'http://','https://',[rfIgnoreCase]);
-        aURL:=ExcludeTrailingPathDelimiter(aURL);
+        //Fallback to previous settings
+        aStoredTarget:=ReadString('URL','lazURL','');
+        if (Length(aStoredTarget)>0) then
+          aStoredTarget:=installerUniversal.GetKeyword(LAZARUSURLLOOKUPMAGIC,aStoredTarget);
       end;
-      LazarusTarget:=aURL;
+      if (Length(aStoredTarget)<>0) then
+        LazarusTarget:=aStoredTarget;
 
       radgrpCPU.ItemIndex:=ReadInteger('Cross','CPUTarget',radgrpCPU.ItemIndex);
       radgrpOS.ItemIndex:=ReadInteger('Cross','OSTarget',radgrpOS.ItemIndex);
@@ -4421,6 +4318,7 @@ begin
 
       Form2.UseSoftFloat:=ReadBool('General','UseSoftFloat',Form2.UseSoftFloat);
       Form2.OnlinePatching:=ReadBool('General','OnlinePatching',Form2.OnlinePatching);
+      Form2.ApplyLocalChanges:=ReadBool('General','ApplyLocalChanges',Form2.ApplyLocalChanges);
 
       Form2.SystemFPC:=ReadBool('General','SystemFPC',False);
 
@@ -4432,7 +4330,6 @@ begin
       Form2.FpcupBootstrappersOnly:=ReadBool('General','FpcupBootstrappersOnly',False);
 
       Form2.ForceLocalRepoClient:=ReadBool('General','ForceLocalRepoClient',Form2.ForceLocalRepoClient);
-
     finally
       Free;
     end;
@@ -4449,7 +4346,7 @@ begin
   end
   else
   begin
-    AddMessage('Current install drectory: '+sInstallDir);
+    AddMessage('Current install directory: '+sInstallDir);
     {$ifdef Solaris}
     // current trunk does not build with the standard -O2, so use -O1 for all
     Form2.FPCOptions:='-g -gl -O1';
@@ -4475,20 +4372,23 @@ begin
   try
     with TMemIniFile.Create(aDir+DirectorySeparator+installerUniversal.DELUXEFILENAME) do
     try
+      WriteString('General','InstallDirectory',sInstallDir);
+
       WriteBool('General','Gitlab',chkGitlab.Checked);
 
       // mmm, is this correct ?  See extrasettings !!
       WriteBool('General','GetRepo',(NOT FPCupManager.ExportOnly));
 
-      if chkGitlab.Checked then
+      if FPCTarget<>'skip' then
       begin
-        WriteString('URL','fpcTag',installerUniversal.GetAlias('fpcTAG',FPCTarget));
-        WriteString('URL','lazTag',installerUniversal.GetAlias('lazTAG',LazarusTarget));
-      end
-      else
+        if (ListBoxFPCTarget.ItemIndex<>-1) then
+          WriteString('Target','fpcVersion',ListBoxFPCTarget.GetSelectedText);
+      end;
+
+      if LazarusTarget<>'skip' then
       begin
-        if FPCTarget<>'skip' then WriteString('URL','fpcURL',FPCTarget);
-        if LazarusTarget<>'skip' then WriteString('URL','lazURL',LazarusTarget);
+        if (ListBoxLazarusTarget.ItemIndex<>-1) then
+          WriteString('Target','lazVersion',ListBoxLazarusTarget.GetSelectedText);
       end;
 
       if (radgrpCPU.ItemIndex<>-1) then WriteInteger('Cross','CPUTarget',radgrpCPU.ItemIndex);
@@ -4518,6 +4418,7 @@ begin
       WriteBool('General','UpdateOnly',Form2.UpdateOnly);
       WriteBool('General','UseSoftFloat',Form2.UseSoftFloat);
       WriteBool('General','OnlinePatching',Form2.OnlinePatching);
+      WriteBool('General','ApplyLocalChanges',Form2.ApplyLocalChanges);
 
       WriteString('Patches','FPCPatches',Form2.FPCPatches);
       WriteString('Patches','LazarusPatches',Form2.LazPatches);
@@ -4561,12 +4462,23 @@ begin
       aMessageStrings.Free;
     end;
   end;
+  {$ifdef READER}
+  CommandOutputScreen.CaretPos.SetLocation(0,CommandOutputScreen.Lines.Count);
+  {$else}
   CommandOutputScreen.CaretX:=0;
   CommandOutputScreen.CaretY:=CommandOutputScreen.Lines.Count;
+  {$endif}
+
   {$ifdef usealternateui}
   alternateui_AddMessage(amessage,updatestatus);
   {$endif}
   Application.ProcessMessages;
+end;
+
+procedure TForm1.TargetSelectionChange(Sender: TObject; User: boolean);
+begin
+  if (NOT User) then exit;
+  SetTarget(TListBox(Sender));
 end;
 
 procedure TForm1.SetFPCTarget(aFPCTarget:string);
@@ -4583,112 +4495,96 @@ procedure TForm1.SetTarget(aControl:TControl;const aTarget:string='');
 var
   i:integer;
   aEdit:TEdit;
+  aListBox:TListBox;
   change:boolean;
   aLocalTarget:string;
-  aKeyword:string;
+  aLocalAlias:string;
 begin
   aEdit:=nil;
+  aListBox:=nil;
   change:=false;
   aLocalTarget:=aTarget;
 
-  if (aControl is TEdit) then
+  if (aControl is TEdit) then aEdit:=TEdit(aControl);
+  if (aControl is TListBox) then aListBox:=TListBox(aControl);
+
+  if (aListBox=nil) then
   begin
-    aEdit:=TEdit(aControl);
-    if (Length(aLocalTarget)=0) then aLocalTarget:=aEdit.Text;
-  end
-  else
+    if aEdit=RealFPCURL then
+      aListBox:=ListBoxFPCTarget;
+    if aEdit=RealLazURL then
+      aListBox:=ListBoxLazarusTarget;
+  end;
+
+  if (aEdit=nil) then
   begin
-    if aControl=ListBoxFPCTarget then
-    begin
+    if aListBox=ListBoxFPCTarget then
       aEdit:=RealFPCURL;
-      if (ListBoxFPCTarget.ItemIndex<>-1) AND (Length(aLocalTarget)=0) then aLocalTarget:=ListBoxFPCTarget.GetSelectedText;
-    end;
-    if aControl=ListBoxLazarusTarget then
-    begin
+    if aListBox=ListBoxLazarusTarget then
       aEdit:=RealLazURL;
-      if (ListBoxLazarusTarget.ItemIndex<>-1) AND (Length(aLocalTarget)=0) then aLocalTarget:=ListBoxLazarusTarget.GetSelectedText;
-    end;
   end;
 
-  if Length(aLocalTarget)=0 then exit;
+  if (aListBox.HandleAllocated) AND (aListBox.ItemIndex<>-1) AND (Length(aLocalTarget)=0) then aLocalTarget:=aListBox.GetSelectedText;
 
-  if (aEdit=RealFPCURL) then
+  if (aEdit=nil) OR (aListBox=nil) OR (Length(aLocalTarget)=0)then
   begin
-    if (chkGitlab.Checked) then
+    ShowMessage('Something serious went wrong when setting target FPC and/or Lazarus target.');
+    exit;
+  end;
+
+  if (aListBox=ListBoxFPCTarget) then
+  begin
+    if AnsiEndsText(GITLABEXTENSION,aLocalTarget) then
     begin
-      if (aControl<>ListBoxFPCTarget) then aLocalTarget:=installerUniversal.GetKeyword('fpcTAG',aLocalTarget);
+      aLocalAlias:=installerUniversal.GetAlias(FPCBRANCHLOOKUPMAGIC,aLocalTarget);
+      if (Length(aLocalAlias)=0) then aLocalAlias:=installerUniversal.GetAlias(FPCTAGLOOKUPMAGIC,aLocalTarget);
+      if (Length(aLocalAlias)=0) then aLocalTarget:='stable'+GITLABEXTENSION; // default to stable in case of lookup failure
+      if (Pos('://',aLocalAlias)=0) then aLocalAlias:=FPCGITLABREPO;
     end
     else
-    begin
-      if (aControl=ListBoxFPCTarget) then aLocalTarget:=installerUniversal.GetAlias('fpcURL',aLocalTarget);
-    end;
+      aLocalAlias:=installerUniversal.GetAlias(FPCURLLOOKUPMAGIC,aLocalTarget);
   end;
-
-  if (aEdit=RealLazURL) then
+  if (aListBox=ListBoxLazarusTarget) then
   begin
-    if (chkGitlab.Checked) then
+    if AnsiEndsText(GITLABEXTENSION,aLocalTarget) then
     begin
-      if (aControl<>ListBoxLazarusTarget) then aLocalTarget:=installerUniversal.GetKeyword('lazTAG',aLocalTarget);
+      aLocalAlias:=installerUniversal.GetAlias(LAZARUSBRANCHLOOKUPMAGIC,aLocalTarget);
+      if (Length(aLocalAlias)=0) then aLocalAlias:=installerUniversal.GetAlias(LAZARUSTAGLOOKUPMAGIC,aLocalTarget);
+      if (Length(aLocalAlias)=0) then aLocalTarget:='stable'+GITLABEXTENSION; // default to stable in case of lookup failure
+      if (Pos('://',aLocalAlias)=0) then aLocalAlias:=LAZARUSGITLABREPO;
     end
     else
-    begin
-      if (aControl=ListBoxLazarusTarget) then aLocalTarget:=installerUniversal.GetAlias('lazURL',aLocalTarget);
-    end;
+      aLocalAlias:=installerUniversal.GetAlias(LAZARUSURLLOOKUPMAGIC,aLocalTarget);
   end;
+  //i:=Pos('.git',aLocalAlias);
+  //if (i>0) then
+  //  Delete(aLocalAlias,i,4);
 
-  if aEdit=RealFPCURL then
+  if (aListBox=ListBoxFPCTarget) then
   begin
     change:=(aLocalTarget<>FFPCTarget);
     if change then FFPCTarget:=aLocalTarget;
   end;
-  if aEdit=RealLazURL then
+  if (aListBox=ListBoxLazarusTarget) then
   begin
     change:=(aLocalTarget<>FLazarusTarget);
     if change then FLazarusTarget:=aLocalTarget;
   end;
 
-  if change then
+  //if (change AND (aListBox.HandleAllocated)) then
   begin
-    if (aControl is TEdit) OR (Length(aTarget)>0) then
+    if (NOT (aControl is TListBox)) then
     begin
-      if aEdit=RealFPCURL then
+      if (aListBox.Items.Count>0) then
       begin
-        if (ListBoxFPCTarget.Items.Count>0) then
-        begin
-          if chkGitlab.Checked then
-            aKeyword:=aLocalTarget
-          else
-            aKeyword:=installerUniversal.GetKeyword('fpcURL',aLocalTarget);
-          i:=ListBoxFPCTarget.Items.IndexOf(aKeyword);
-          if i<>-1 then
-          begin
-            ListBoxFPCTarget.Selected[i]:=true;
-            if i>5 then ListBoxFPCTarget.TopIndex:=(i-1);
-          end else ListBoxFPCTarget.ClearSelection;
-        end;
-      end;
-      if aEdit=RealLazURL then
-      begin
-        if (ListBoxLazarusTarget.Items.Count>0) then
-        begin
-          if chkGitlab.Checked then
-            aKeyword:=aLocalTarget
-          else
-            aKeyword:=installerUniversal.GetKeyword('lazURL',aLocalTarget);
-          i:=ListBoxLazarusTarget.Items.IndexOf(aKeyword);
-          if i<>-1 then
-          begin
-            ListBoxLazarusTarget.Selected[i]:=true;
-            if i>5 then ListBoxLazarusTarget.TopIndex:=(i-1);
-          end else ListBoxLazarusTarget.ClearSelection;
-        end;
+        i:=aListBox.Items.IndexOf(aLocalTarget);
+        if (i<>-1) then
+          aListBox.Selected[i]:=true
+        else
+          aListBox.ClearSelection;
       end;
     end;
-    if (aControl is TListBox) OR (Length(aTarget)>0) then
-    begin
-      if (NOT chkGitlab.Checked) then
-        aEdit.Text:=aLocalTarget;
-    end;
+    aEdit.Text:=aLocalAlias;
   end;
 end;
 
@@ -4720,17 +4616,19 @@ end;
 
 procedure TForm1.chkGitlabChange(Sender: TObject);
 begin
-  RealFPCURL.Visible:=(NOT TCheckBox(Sender).Checked);
-  RealLazURL.Visible:=(NOT TCheckBox(Sender).Checked);
+  //RealFPCURL.Visible:=(NOT TCheckBox(Sender).Checked);
+  //RealLazURL.Visible:=(NOT TCheckBox(Sender).Checked);
 
   imgSVN.Visible:=(NOT TCheckBox(Sender).Checked);
   imgGitlab.Visible:=(TCheckBox(Sender).Checked);
 
-  WioBtn.Enabled:=(NOT TCheckBox(Sender).Checked);
-  PicoBtn.Enabled:=(NOT TCheckBox(Sender).Checked);
+  //WioBtn.Enabled:=(NOT TCheckBox(Sender).Checked);
+  //PicoBtn.Enabled:=(NOT TCheckBox(Sender).Checked);
   UltiboBtn.Enabled:=(NOT TCheckBox(Sender).Checked);
 
   FillSourceListboxes;
+
+  ScrollToSelected;
 end;
 
 procedure TForm1.HandleInfo(var Msg: TLMessage);
@@ -4740,7 +4638,66 @@ var
 begin
   MsgStr := {%H-}PChar(Msg.wparam);
   MsgPasStr := StrPas(MsgStr);
-  CommandOutputScreen.SetFiltered(MsgPasStr);
+
+  {$ifdef Darwin}
+  // suppress all setfocus errors on Darwin, always
+  if AnsiContainsText(MsgPasStr,'.setfocus') then exit;
+  {$endif}
+
+  {$ifdef READER}
+  CommandOutputScreen.Append(MsgPasStr);
+  {$else}
+  // suppress all SynEdit PaintLock errors, always
+  if AnsiContainsText(MsgPasStr,'PaintLock') then exit;
+  {$if defined(FPC_FULLVERSION) and (FPC_FULLVERSION > 30000)}
+  CommandOutputScreen.Append(MsgPasStr);
+  {$else}
+  CommandOutputScreen.Lines.Append(MsgPasStr);
+  {$endif}
+  CommandOutputScreen.CaretX:=0;
+  CommandOutputScreen.CaretY:=CommandOutputScreen.Lines.Count;
+  {$endif}
+
+  ProcessInfo(CommandOutputScreen);
+
+  if (ExistWordInString(MsgStr,'error:',[soWholeWord,soDown])) OR (ExistWordInString(MsgStr,'fatal:',[soWholeWord,soDown])) then
+  begin
+    if (ExistWordInString(MsgStr,'failed to get crossbinutils',[soDown])) then
+    begin
+      if (NOT MissingCrossBins) then memoSummary.Lines.Append('Missing correct cross libraries');
+      MissingCrossBins:=true;
+    end
+    else if (ExistWordInString(MsgStr,'failed to get crosslibrary',[soDown])) then
+    begin
+      if (NOT MissingCrossLibs) then memoSummary.Lines.Append('Missing correct cross libraries');
+      MissingCrossLibs:=true;
+    end
+    else if ((ExistWordInString(MsgStr,'CheckAndGetTools',[soDown])) OR (ExistWordInString(MsgStr,'Required package is not installed',[soDown]))) then
+    begin
+      if (NOT MissingTools) then
+      begin
+        {$ifdef Darwin}
+        memoSummary.Lines.Append('Missing some tools: please install Xcode command line tools !');
+        memoSummary.Lines.Append('xcode-select --install');
+        {$else}
+        memoSummary.Lines.Append('Missing some tools: please install missing tools!');
+        {$endif}
+      end;
+      MissingTools:=true;
+    {$ifdef Darwin}
+    end
+    else if (ExistWordInString(MsgStr,'The subversion command line tools are no longer provided by Xcode',[soDown])) then
+    begin
+      if (NOT MissingTools) then
+      begin
+        memoSummary.Lines.Append('SVN is no longer included in Xcode command line tools !');
+        memoSummary.Lines.Append('Use a GIT repo (preferred) or install SVN by yourself (brew).');
+      end;
+      MissingTools:=true;
+    {$endif}
+    end;
+  end;
+
   StrDispose(MsgStr)
 end;
 
@@ -4793,20 +4750,25 @@ begin
 end;
 {$endif}
 
+procedure TForm1.ScrollToSelected(Data: PtrInt);
+begin
+  if (ListBoxFPCTarget.HandleAllocated) AND (ListBoxFPCTarget.ItemIndex>8) then ListBoxFPCTarget.MakeCurrentVisible;
+  if (ListBoxLazarusTarget.HandleAllocated) AND (ListBoxLazarusTarget.ItemIndex>8) then ListBoxLazarusTarget.MakeCurrentVisible;
+end;
+
 procedure TForm1.ParseRevisions(IniDirectory:string);
 type
   TTarget             = (FPC,LAZARUS);
 const
-  TargetRevMagic      : array[TTarget] of string = (FPCREVMAGIC,LAZREVMAGIC);
   TargetDateMagic     : array[TTarget] of string = (FPCDATEMAGIC,LAZDATEMAGIC);
-  //TargetHashMagic     : array[TTarget] of string = (FPCHASHMAGIC,LAZHASHMAGIC);
+  TargetHashMagic     : array[TTarget] of string = (FPCHASHMAGIC,LAZHASHMAGIC);
 var
   aTarget             : TTarget;
   RevList             : TStringList;
   RevFile             : string;
   index               : integer;
-  date,revision       : string;
-  //hash                : string;
+  date                : string;
+  hash                : string;
   AItem               : TListItem;
   TargetViewArray     : array[TTarget] of TListView;
 begin
@@ -4836,39 +4798,29 @@ begin
             else
               begin
                 date:=RevList[index];
-                revision:='';
-                //hash:='';
+                hash:='';
                 Delete(date,1,Length(TargetDateMagic[aTarget]));
                 Inc(index);
                 while (index<RevList.Count) do
                 begin
                   if (Length(RevList[index])=0) then break;
-                  if (Pos(TargetRevMagic[aTarget],RevList[index])=1) then
-                  begin
-                    revision:=RevList[index];
-                    Delete(revision,1,Length(TargetRevMagic[aTarget]))
-                  end;
-                  {
-                  else
-                  if (Pos(TargetHashMagic[aTarget],RevList[index])=1) then
+                  if AnsiStartsText(TargetHashMagic[aTarget],RevList[index]) then
                   begin
                     hash:=RevList[index];
                     Delete(hash,1,Length(TargetHashMagic[aTarget]))
                   end;
-                  }
                   Inc(index);
                 end;
 
-                if ( (Length(revision)>0) AND (revision<>'failure') AND (revision<>'unknown') ) then
+                if ( (Length(hash)>0) AND (hash<>'failure') AND (hash<>'unknown') ) then
                 begin
-                  AItem:=TargetViewArray[aTarget].FindCaption(0,revision,false,true,false);
+                  AItem:=TargetViewArray[aTarget].FindCaption(0,hash,false,true,false);
                   if (aItem=nil) then
                   begin
                     with TargetViewArray[aTarget].Items.Add do
                     begin
-                      Caption:=revision;
+                      Caption:=hash;
                       SubItems.Add(date);
-                      //SubItems.Add(hash);
                     end;
                   end;
                 end;
@@ -4877,9 +4829,13 @@ begin
 
           end;
 
+          if aTarget=TTarget.FPC then BitBtnFPCSetRevision.Enabled:=(TargetViewArray[aTarget].Items.Count>0);
+          if aTarget=TTarget.LAZARUS then BitBtnLazarusSetRevision.Enabled:=(TargetViewArray[aTarget].Items.Count>0);
+
         finally
           TargetViewArray[aTarget].Items.EndUpdate;
         end;
+
       end;
 
     finally
@@ -4895,7 +4851,7 @@ var
   s:string;
 begin
   AddMessage(upCheckUpdate);
-  s:=checkGithubRelease(FPCUPGITREPOAPI+'/latest');
+  s:=checkGithubRelease(FPCUPGITREPOAPIRELEASES+'/latest');
   if Length(s)>0 then
   begin
     AddMessage(upUpdateFound);
@@ -4915,27 +4871,86 @@ begin
   CommandOutputScreen.Font.Size:=aValue;
 end;
 
-procedure TForm1.FillSourceListboxes;
+function TForm1.GetCmdFontName: String;
 begin
-  ListBoxFPCTarget.Items.Clear;
-  if ListBoxFPCTarget.Count=0 then
-  begin
-    if chkGitlab.Checked then
-      ListBoxFPCTarget.Items.CommaText:=installerUniversal.GetAlias('fpcTAG','list')
-    else
-      ListBoxFPCTarget.Items.CommaText:=installerUniversal.GetAlias('fpcURL','list');
-  end;
-
-  ListBoxLazarusTarget.Items.Clear;
-  if ListBoxLazarusTarget.Count=0 then
-  begin
-    if chkGitlab.Checked then
-      ListBoxLazarusTarget.Items.CommaText:=installerUniversal.GetAlias('lazTAG','list')
-    else
-      ListBoxLazarusTarget.Items.CommaText:=installerUniversal.GetAlias('lazURL','list');
-  end;
+  Result := CommandOutputScreen.Font.Name;
 end;
 
+procedure TForm1.SetCmdFontName(aValue: String);
+begin
+  CommandOutputScreen.Font.Name:=aValue;
+end;
+
+procedure TForm1.FillSourceListboxes;
+var
+  aFPCKeyword,aLazarusKeyword:string;
+  aList:TStringList;
+  i:integer;
+begin
+  if (ListBoxFPCTarget.SelCount=1)
+    then aFPCKeyword:=ListBoxFPCTarget.GetSelectedText
+  else
+    aFPCKeyword:=FPCTarget;
+
+  if (ListBoxLazarusTarget.SelCount=1)
+    then aLazarusKeyword:=ListBoxLazarusTarget.GetSelectedText
+  else
+    aLazarusKeyword:=LazarusTarget;
+
+  aList:=TStringList.Create;
+  try
+    aList.Clear;
+
+    ListBoxFPCTarget.Items.BeginUpdate;
+    ListBoxFPCTarget.Items.Clear;
+    if ListBoxFPCTarget.Count=0 then
+    begin
+      if chkGitlab.Checked then
+      begin
+        aList.CommaText:=installerUniversal.GetAlias(FPCTAGLOOKUPMAGIC,'list')+','+installerUniversal.GetAlias(FPCBRANCHLOOKUPMAGIC,'list');
+      end
+      else
+        aList.CommaText:=installerUniversal.GetAlias(FPCURLLOOKUPMAGIC,'list');
+      if chkGitlab.Checked then aList.CustomSort(@NaturalCompare);
+      ListBoxFPCTarget.Items.AddStrings(aList);
+    end;
+    ListBoxFPCTarget.Items.EndUpdate;
+
+    aList.Clear;
+
+    ListBoxLazarusTarget.Items.BeginUpdate;
+    ListBoxLazarusTarget.Items.Clear;
+    if ListBoxLazarusTarget.Count=0 then
+    begin
+      if chkGitlab.Checked then
+      begin
+        aList.CommaText:=installerUniversal.GetAlias(LAZARUSTAGLOOKUPMAGIC,'list')+','+installerUniversal.GetAlias(LAZARUSBRANCHLOOKUPMAGIC,'list');
+      end
+      else
+        aList.CommaText:=installerUniversal.GetAlias(LAZARUSURLLOOKUPMAGIC,'list');
+      if chkGitlab.Checked then aList.CustomSort(@NaturalCompare);
+      ListBoxLazarusTarget.Items.AddStrings(aList);
+    end;
+    ListBoxLazarusTarget.Items.EndUpdate;
+
+  finally
+    aList.Free;
+  end;
+
+  if ((Length(aFPCKeyword)>0) AND (ListBoxFPCTarget.Items.Count>0)) then
+  begin
+    i:=ListBoxFPCTarget.Items.IndexOf(aFPCKeyword);
+    if (i<>-1) then
+      FPCTarget:=aFPCKeyword;
+  end;
+
+  if ((Length(aLazarusKeyword)>0) AND (ListBoxLazarusTarget.Items.Count>0)) then
+  begin
+    i:=ListBoxLazarusTarget.Items.IndexOf(aLazarusKeyword);
+    if (i<>-1) then
+      LazarusTarget:=aLazarusKeyword;
+  end;
+end;
 
 end.
 

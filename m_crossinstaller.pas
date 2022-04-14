@@ -42,6 +42,8 @@ const
   ErrorNotFound='An error occurred getting cross compiling binutils/libraries.'+LineEnding+
     'todo: specify what exactly is missing';
 
+  CrossWindowsSuggestion = 'Suggestion for cross binutils: the crossfpc binutils at https://gitlab.com/freepascal.org/fpc/binaries/-/tree/main/i386-win32.';
+
   MAXDARWINVERSION=20;
   MINDARWINVERSION=7;
 
@@ -92,6 +94,9 @@ const
   ABI_ARM            = [TABI.default,TABI.eabi,TABI.eabihf];
   ABI_XTENSA         = [TABI.default,TABI.windowed,TABI.call0];
   ABI_RISCV64        = [TABI.default,TABI.riscvhf];
+
+  CPUADDRSIZE_64     = [TCPU.aarch64,TCPU.powerpc64,TCPU.riscv64,TCPU.sparc64,TCPU.x86_64{,TCPU.ia64]}];
+  CPUADDRSIZE_32     = [TCPU.i386,TCPU.arm,TCPU.powerpc,TCPU.mips,TCPU.mipsel,TCPU.sparc,TCPU.riscv32,TCPU.m68k,TCPU.xtensa,TCPU.wasm32];
 
 type
   TSearchSetting = (ssUp,ssAuto,ssCustom);
@@ -145,7 +150,7 @@ type
     FLibsFound,FBinsFound,FCrossOptsAdded:boolean;
     FSolarisOI:boolean;
     FMUSL:boolean;
-    function PerformLibraryPathMagic:boolean;
+    function PerformLibraryPathMagic(out LibraryPath:string):boolean;
     function SearchLibrary(Directory, LookFor: string): boolean;
     function SimpleSearchLibrary(BasePath,DirName: string; const LookFor:string): boolean;
     function SearchBinUtil(Directory, LookFor: string): boolean;
@@ -428,6 +433,7 @@ begin
 end;
 {$endif LCL}
 
+
 function GetExeExt: string;
 begin
   {$IFDEF WINDOWS}
@@ -541,13 +547,15 @@ begin
   //if Length(extrainfo)>0 then Infoln(CrossModuleName + ' bins : '+extrainfo, etInfo);
 end;
 
-function TCrossInstaller.PerformLibraryPathMagic:boolean;
+function TCrossInstaller.PerformLibraryPathMagic(out LibraryPath:string):boolean;
 var
   aPath:TStringArray;
   aIndex:integer;
   aABI:TABI;
 begin
   result:=false;
+
+  LibraryPath:=FLibsPath;
 
   // Skip for some combo's until we have structured libs
   if (Self.TargetOS=TOS.embedded) AND (Self.TargetCPU<>TCPU.arm) then exit;
@@ -584,7 +592,7 @@ begin
     end;
   end;
 
-  if result then FLibsPath:=ConcatPaths(aPath);
+  if result then LibraryPath:=ConcatPaths(aPath);
 end;
 
 function TCrossInstaller.SearchLibrary(Directory, LookFor: string): boolean;
@@ -955,11 +963,13 @@ begin
             // - armeabi-v7a-hard ABI is not adviced anymore by Google,
             //   see "ARM Hard Float ABI Removal" on
             //   https://android.googlesource.com/platform/ndk/+/353e653824b79c43b948429870d0abeedebde386/docs/HardFloatAbi.md
+            //   and
+            //   https://developer.android.com/ndk/guides/abis#v7a
             // - it prevents calling functions from libraries not using
             //   armeabi-v7a-hard ABI (but only using armeabi-v7a) like
             //   http://repo.or.cz/openal-soft/android.git or
             //   https://github.com/michaliskambi/tremolo-android .
-            aCrossOptionSetting:='-CfVFPV3 -CaEABI ';
+            aCrossOptionSetting:='-CfVFPV3 -OoFASTMATH -CaEABI ';
           end;
         end;
 

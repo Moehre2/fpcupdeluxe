@@ -143,14 +143,33 @@ begin
     if AnsiPos(magic, s) <> 0 then
     begin
       // Check if we have the libs
-      magic:=GetMultilibDir;
-      if (Length(magic)=0) then exit;
-      s:='/lib/'+magic; //debian (multilib) Jessie+ convention
-      if DirectoryExists(s) AND FileExists(s+DirectorySeparator+'libc.so.6') then
+
+      if (NOT FMultilib) then
       begin
-        s:='/usr/lib/'+magic; //debian (multilib) Jessie+ convention
-        if DirectoryExists(s) AND FileExists(s+DirectorySeparator+'libX11.so.6')  AND FileExists(s+DirectorySeparator+'libgdk-x11-2.0.so') then FMultilib:=True;
+        //debian (multilib) Jessie+ convention
+        magic:=GetMultilibDir;
+        if (Length(magic)=0) then exit;
+        s:='/lib/'+magic;
+        if DirectoryExists(s) AND FileExists(s+DirectorySeparator+'libc.so.6') then
+        begin
+          s:='/usr/lib/'+magic; //debian (multilib) Jessie+ convention
+          if DirectoryExists(s) AND FileExists(s+DirectorySeparator+'libX11.so.6')  AND FileExists(s+DirectorySeparator+'libgdk-x11-2.0.so') then FMultilib:=True;
+        end;
       end;
+
+      if (NOT FMultilib) then
+      begin
+        //Arch Linux convention
+        magic:=GetMultilibDirShort;
+        if (Length(magic)=0) then exit;
+        s:='/usr/'+magic;
+        if DirectoryExists(s) AND FileExists(s+DirectorySeparator+'libc.so.6') then
+        begin
+          if DirectoryExists(s) AND FileExists(s+DirectorySeparator+'libX11.so.6')  AND FileExists(s+DirectorySeparator+'libgdk-x11-2.0.so') then FMultilib:=True;
+        end;
+      end;
+
+
     end;
   end;
   result:=FMultilib;
@@ -159,8 +178,12 @@ end;
 {$ENDIF MULTILIB}
 
 function Tany_linux.GetLibs(Basepath:string): boolean;
+const
+  SDSTARTMAGIC='SEARCH_DIR("=';
+  SDENDMAGIC='");';
 var
-  aDirName,aLibName,s:string;
+  aDirName,aLibName,s,sd:string;
+  i,j:integer;
 begin
   result:=FLibsFound;
   if result then exit;
@@ -186,12 +209,21 @@ begin
   if result then
   begin
     FLibsFound:=True;
-    AddFPCCFGSnippet('-Xd'); {buildfaq 3.4.1 do not pass parent /lib etc dir to linker}
-    AddFPCCFGSnippet('-Fl'+IncludeTrailingPathDelimiter(FLibsPath)); {buildfaq 1.6.4/3.3.1: the directory to look for the target  libraries}
-    //Remember: -XR sets the sysroot path used for linking
-    //AddFPCCFGSnippet('-XR'+IncludeTrailingPathDelimiter(FLibsPath)+'lib64'); {buildfaq 1.6.4/3.3.1: the directory to look for the target libraries ... just te be safe ...}
-    //Remember: -Xr adds a  rlink path to the linker
-    AddFPCCFGSnippet('-Xr/usr/lib');
+    AddFPCCFGSnippet('-Xd'); // do not pass parent /lib etc dir to linker}
+    AddFPCCFGSnippet('-Fl'+IncludeTrailingPathDelimiter(FLibsPath)); // the directory to look for the target  libraries}
+
+    //if CheckMultilib then
+    if false then
+    begin
+      {$IFDEF CPU64}
+      if TargetCPU in CPUADDRSIZE_32 then
+        AddFPCCFGSnippet('-Xr/usr/lib32');
+      {$ENDIF CPU64}
+      {$IFDEF CPU32}
+      if TargetCPU in CPUADDRSIZE_64 then
+        AddFPCCFGSnippet('-Xr/usr/lib64');
+      {$ENDIF CPU32}
+    end;
 
     if FMUSL then
     begin
@@ -200,7 +232,7 @@ begin
     end;
   end;
 
-  if not result then
+  if (NOT result) then
   begin
     {$IFDEF MULTILIB}
     if CheckMultilib then
@@ -208,15 +240,31 @@ begin
       result:=true;
       FLibsFound:=True;
 
-      FLibsPath:='/lib/'+GetMultilibDir;
-      AddFPCCFGSnippet('-Fl'+IncludeTrailingPathDelimiter(FLibsPath));
+      // We should use -XR to define (or limit) the linker search path.
+      // But fpcupdeluxe only will add all suitable library paths
+      // So we need to disable the default linker search path to prevent linking errors.
+      AddFPCCFGSnippet('-Xd'); // do not pass parent /lib etc dir to linker}
 
-      FLibsPath:='/usr/lib/'+GetMultilibDir;
-      AddFPCCFGSnippet('-Fl'+IncludeTrailingPathDelimiter(FLibsPath));
+      s:='/lib/'+GetMultilibDir;
+      if DirectoryExists(s) then
+      begin
+        FLibsPath:=s;
+        s:=s+DirectorySeparator;
+        AddFPCCFGSnippet('-Fl'+s);
+      end;
+
+      s:='/usr/lib/'+GetMultilibDir;
+      if DirectoryExists(s) then
+      begin
+        FLibsPath:=s;
+        s:=s+DirectorySeparator;
+        AddFPCCFGSnippet('-Fl'+s);
+      end;
 
       s:='/'+GetMultilibDirShort;
       if DirectoryExists(s) then
       begin
+        FLibsPath:=s;
         s:=s+DirectorySeparator;
         AddFPCCFGSnippet('-Fl'+s);
       end;
@@ -224,26 +272,77 @@ begin
       s:='/usr/'+GetMultilibDirShort;
       if DirectoryExists(s) then
       begin
+        FLibsPath:=s;
         s:=s+DirectorySeparator;
         AddFPCCFGSnippet('-Fl'+s);
       end;
-
-      // gcc multilib
-      s:='';
-      {$IFDEF CPUX64}
-      s:=IncludeTrailingPathDelimiter(GetStartupObjects)+'32';
-      {$ENDIF CPUX64}
-      {$IFDEF CPUX86}
-      s:=IncludeTrailingPathDelimiter(GetStartupObjects)+'64';
-      {$ENDIF CPUX86}
-      if DirectoryExists(s) then
-      begin
-        s:=s+DirectorySeparator;
-        AddFPCCFGSnippet('-Fl'+s);
-      end;
-
     end;
     {$ENDIF MULTILIB}
+
+    {$IFDEF MULTILIB}
+    if (NOT CheckMultilib) then
+    {$ELSE}
+    if true then
+    {$ENDIF}
+    begin
+      {$IFDEF UNIX}
+      if FBinsFound then
+      begin
+        s:='';
+        RunCommand(IncludeTrailingPathDelimiter(FBinUtilsPath)+FBinUtilsPrefix+'ld',['--verbose'], s,[poUsePipes, poStderrToOutPut],swoHide);
+        repeat
+          i:=Pos(SDSTARTMAGIC,s);
+          if (i>0) then
+          begin
+            Delete(s,1,(i-1)+Length(SDSTARTMAGIC));
+            j:=Pos(SDENDMAGIC,s);
+            if (j>0) then
+            begin
+              sd:=Copy(s,1,(j-1));
+              writeln(sd);
+              if DirectoryExists(sd) then
+              begin
+                if (NOT result) then
+                begin
+                  result:=SearchLibrary(sd,aLibName);
+                  if result then
+                  begin
+                    FLibsFound:=True;
+                    AddFPCCFGSnippet('-Fl'+IncludeTrailingPathDelimiter(FLibsPath)); // the directory to look for the target  libraries}
+                  end;
+                end;
+              end;
+              Delete(s,1,(j-1)+Length(SDENDMAGIC));
+            end
+            else i:=0;
+          end;
+        until (i<1);
+      end;
+      {$ENDIF UNIX}
+    end;
+  end;
+
+  if result then
+  begin
+    // Add gcc path if any
+    {$IFDEF UNIX}
+    {$ifdef CPU64}
+    if TargetCPU in CPUADDRSIZE_32 then
+    begin
+      s:=IncludeTrailingPathDelimiter(GetStartupObjects)+'32';
+      if DirectoryExists(s) then
+        AddFPCCFGSnippet('-Fl'+s+DirectorySeparator);
+    end;
+    {$endif CPU64}
+    {$ifdef CPU32}
+    if TargetCPU in CPUADDRSIZE_64 then
+    begin
+      s:=IncludeTrailingPathDelimiter(GetStartupObjects)+'64';
+      if DirectoryExists(s) then
+        AddFPCCFGSnippet('-Fl'+s+DirectorySeparator);
+    end;
+    {$endif CPU32}
+    {$ENDIF UNIX}
   end;
 
   SearchLibraryInfo(result);
@@ -262,7 +361,8 @@ var
   AsFile: string;
   BinPrefixTry: string;
   aDirName: string;
-  s:string;
+  s: string;
+  i: integer;
 begin
   result:=inherited;
 
@@ -273,43 +373,177 @@ begin
   else
     aDirName:=DirName;
 
-  AsFile:=FBinUtilsPrefix+'as'+GetExeExt;
+  BinPrefixTry:=FBinUtilsPrefix;
+
+  AsFile:=BinPrefixTry+'as'+GetExeExt;
 
   result:=SearchBinUtil(BasePath,AsFile);
-
-  {$IFDEF MULTILIB}
-  if CheckMultilib then
-  begin
-    s:=Which('objdump');
-    s:=ExtractFileDir(s);
-    AsFile:='as'+GetExeExt;
-    result:=SearchBinUtil(s,AsFile);
-    if result then FBinUtilsPrefix:='';
-  end;
-  {$ENDIF}
-
   if not result then
     result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+
+  {$IFDEF UNIX}
+  // User may also have placed them into their regular search path:
+  if (not result) then
+  begin
+    for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+    begin
+      result:=SearchBinUtil(IncludeTrailingPathDelimiter(UnixBinDirs[i])+aDirName, AsFile);
+      if (not result) then
+        result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+      if result then break;
+    end;
+  end;
+  {$ENDIF UNIX}
+
+  {$IFDEF UNIX}
+  {$IFDEF MULTILIB}
+  if (not result) then
+  begin
+    if CheckMultilib then
+    begin
+      BinPrefixTry:='';
+      s:=Which('objdump');
+      s:=ExtractFileDir(s);
+      AsFile:='as'+GetExeExt;
+      result:=SearchBinUtil(s,AsFile);
+      if not result then
+        result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+    end;
+  end;
+  {$ENDIF}
+  {$ENDIF UNIX}
 
   // Now also allow for cpu-linux-gnu- binutilsprefix (e.g. codesourcery)
   if not result then
   begin
-    BinPrefixTry:=Self.TargetCPUName+'-linux-gnu-';
+    BinPrefixTry:=TargetCPUName+'-linux-gnu-';
     AsFile:=BinPrefixTry+'as'+GetExeExt;
     result:=SearchBinUtil(BasePath,AsFile);
-    if not result then result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
-    if result then FBinUtilsPrefix:=BinPrefixTry;
+    if (not result) then
+      result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+    {$IFDEF UNIX}
+    if (not result) then
+    begin
+      for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+      begin
+        result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+        if result then break;
+      end;
+    end;
+    {$ENDIF UNIX}
+    if (not result) then
+    begin
+      if (TargetCPU=TCPU.i386) then
+      begin
+        BinPrefixTry:='i586-linux-gnu-';
+        AsFile:=BinPrefixTry+'as'+GetExeExt;
+        result:=SearchBinUtil(BasePath,AsFile);
+        if (not result) then
+          result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+        {$IFDEF UNIX}
+        if (not result) then
+        begin
+          for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+          begin
+            result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+            if result then break;
+          end;
+        end;
+        {$ENDIF UNIX}
+      end;
+    end;
+    if (not result) then
+    begin
+      if (TargetCPU=TCPU.i386) then
+      begin
+        BinPrefixTry:='i686-linux-gnu-';
+        AsFile:=BinPrefixTry+'as'+GetExeExt;
+        result:=SearchBinUtil(BasePath,AsFile);
+        if (not result) then
+          result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+        {$IFDEF UNIX}
+        if (not result) then
+        begin
+          for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+          begin
+            result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+            if result then break;
+          end;
+        end;
+        {$ENDIF UNIX}
+      end;
+    end;
   end;
 
+  {$IFDEF LINUX}
+  // Also allow for correctly named suse (cross)binutils in /usr/bin
+  if (not result) then
+  begin
+    BinPrefixTry:=TargetCPUName+'-suse-linux-';
+    AsFile:=BinPrefixTry+'as'+GetExeExt;
+    result:=SearchBinUtil(BasePath,AsFile);
+    if (not result) then
+      result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+    if (not result) then
+    begin
+      for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+      begin
+        result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+        if result then break;
+      end;
+    end;
+    if (not result) then
+    begin
+      if (TargetCPU=TCPU.i386) then
+      begin
+        BinPrefixTry:='i586-suse-linux-';
+        AsFile:=BinPrefixTry+'as'+GetExeExt;
+        result:=SearchBinUtil(BasePath,AsFile);
+        if (not result) then
+          result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+        if (not result) then
+        begin
+          for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+          begin
+            result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+            if result then break;
+          end;
+        end;
+      end;
+    end;
+    if (not result) then
+    begin
+      if (TargetCPU=TCPU.i386) then
+      begin
+        BinPrefixTry:='i686-suse-linux-';
+        AsFile:=BinPrefixTry+'as'+GetExeExt;
+        result:=SearchBinUtil(BasePath,AsFile);
+        if (not result) then
+          result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
+        if (not result) then
+        begin
+          for i:=Low(UnixBinDirs) to High(UnixBinDirs) do
+          begin
+            result:=SearchBinUtil(UnixBinDirs[i], AsFile);
+            if result then break;
+          end;
+        end;
+      end;
+    end;
+  end;
+  {$ENDIF LINUX}
+
   // Also allow for (cross)binutils without prefix in the right directory
-  if not result then
+  if (not result) then
   begin
     BinPrefixTry:='';
     AsFile:=BinPrefixTry+'as'+GetExeExt;
     result:=SearchBinUtil(BasePath,AsFile);
-    if not result then result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
-    if result then FBinUtilsPrefix:=BinPrefixTry;
+    if (not result) then
+      result:=SimpleSearchBinUtil(BasePath,aDirName,AsFile);
   end;
+
+  if result then FBinUtilsPrefix:=BinPrefixTry;
 
   SearchBinUtilsInfo(result);
 

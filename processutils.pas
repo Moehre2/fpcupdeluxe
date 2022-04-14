@@ -2,9 +2,7 @@ unit processutils;
 
 {$mode objfpc}{$H+}
 
-{$ifdef LCL}
-{$define THREADEDEXECUTE}
-{$endif}
+{$i fpcupdefines.inc}
 
 interface
 
@@ -497,7 +495,7 @@ begin
       end;
       if Verbose OR FFPCMagic
       //OR (NOT IsMultiThread)
-      {$ifndef LCL} OR True{$endif}
+      //{$ifndef LCL} OR True{$endif}
       {$ifdef DEBUG} OR True{$endif}
       then
       begin
@@ -873,6 +871,12 @@ begin
   // suppress some GIT errors, always
   if AnsiContainsText(line,'fatal: not a git repository') then exit;
 
+  //Haiku errors we are not interested in
+  {$ifdef Haiku}
+  if AnsiStartsText('fatal: No names found',line) then exit;
+  if AnsiStartsText('runtime_loader:',line) then exit;
+  {$endif}
+
   // suppress some lazbuild errors, always
   if AnsiContainsText(line,'lazbuild') then
   begin
@@ -886,6 +890,7 @@ begin
   begin
     if AnsiContainsText(line,'error 87') then exit;
     if AnsiContainsText(line,'(e=87)') then exit;
+    if AnsiContainsText(line,':294:') then exit;
   end;
 
   //Various harmless OpenBSD errors
@@ -898,10 +903,12 @@ begin
   if AnsiStartsText('Compiling Release Version',line) then exit;
   if AnsiStartsText('Compiling Debug Version',line) then exit;
 
-  //Haiku error we are not interested in
-  {$ifdef Haiku}
-  if AnsiStartsText('runtime_loader:',line) then exit;
-  {$endif}
+  //Skip debug message
+  //if AnsiStartsText('TExternalToolsConsole.HandleMesages: Calling CheckSynchronize!',line) then exit;
+  if AnsiStartsText('TExternalToolsConsole',line) then exit;
+
+  // Harmless GIT warning
+  if AnsiStartsText('warning: redirecting to https',line) then exit;
 
   result:=(NOT aVerbosity);
 
@@ -914,6 +921,9 @@ begin
 
     //Harmless linker warning
     if AnsiContainsText(line,'did you forget -T') then exit;
+
+    //Harmless fpmkpkg warning
+    if AnsiStartsText('Could not find libgcc ',line) then exit;
   end;
 
   if (NOT result) then
@@ -926,6 +936,10 @@ begin
     if AnsiStartsText('svnversion: error:',line) then exit;
     {$endif Darwin}
 
+    // GIT quirks.
+    if AnsiStartsText('fatal: No annotated tags ',line) then exit;
+    if AnsiStartsText('fatal: HEAD does not ',line) then exit;
+    if AnsiStartsText('However, ',line) then exit;
 
     // to be absolutely sure not to miss errors and fatals and fpcupdeluxe messages !!
     // will be a bit redundant , but just to be sure !
@@ -1035,6 +1049,10 @@ begin
         {$ifdef MSWINDOWS}
         if AnsiContainsText(line,'unable to determine the libgcc path') then exit;
         {$endif}
+
+        if AnsiContainsText(line,'constant cast with potential data loss') then exit;
+
+        if AnsiContainsText(line,'Removed non empty directory') then exit;
       end;
       // suppress "trivial"* build commands
 
@@ -1044,6 +1062,7 @@ begin
       if AnsiContainsText(line,'mv.exe ') then exit;
       if AnsiContainsText(line,'cmp.exe ') then exit;
       if (AnsiContainsText(line,'cp.exe ')) AND (AnsiContainsText(line,'.compiled')) then exit;
+      //if AnsiContainsText(line,'ginstall.exe ') then exit;
       {$endif}
 
       s:='rm ';

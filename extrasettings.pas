@@ -21,21 +21,33 @@ type
   TForm2 = class(TForm)
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
+    btnAddFPCPatch: TButton;
+    btnAddLazPatch: TButton;
     btnListCustomOptions: TButton;
+    btnRemFPCPatch: TButton;
+    btnRemLazPatch: TButton;
     btnSelectLibDir: TButton;
     btnSelectBinDir: TButton;
-    btnAddFPCPatch: TButton;
-    btnRemFPCPatch: TButton;
-    btnAddLazPatch: TButton;
-    btnRemLazPatch: TButton;
     btnSelectCompiler: TButton;
     chkFPCDebug: TCheckBox;
     chkLazarusDebug: TCheckBox;
     ComboBoxCPU: TComboBox;
     ComboBoxOS: TComboBox;
+    EditFPCPreInstall: TEdit;
+    EditFPCPostInstall: TEdit;
+    EditLazarusPreInstall: TEdit;
+    EditLazarusPostInstall: TEdit;
+    grpPatching: TGroupBox;
+    GroupBoxFPCLazScripts: TGroupBox;
     IniPropStorageSettings: TIniPropStorage;
     LabelCPU: TLabel;
+    LabelFPCPreInstall: TLabel;
+    LabelFPCPostInstall: TLabel;
+    LabelLazarusPreInstall: TLabel;
+    LabelLazarusPostInstall: TLabel;
     LabelOS: TLabel;
+    ListBoxFPCPatch: TListBox;
+    ListBoxLazPatch: TListBox;
     MiscellaneousCheckListBox: TCheckListBox;
     EditCrossBuildOptions: TEdit;
     EditFPCBranch: TEdit;
@@ -68,8 +80,6 @@ type
     LabelLazarusbranch: TLabel;
     LabelLazarusOptions: TLabel;
     LabelLazarusRevision: TLabel;
-    ListBoxFPCPatch: TListBox;
-    ListBoxLazPatch: TListBox;
     OpenDialog1: TOpenDialog;
     ButtonPanel: TPanel;
     PageControl1: TPageControl;
@@ -86,6 +96,7 @@ type
     procedure ComboBoxCPUOSChange({%H-}Sender: TObject);
     procedure EditCrossBuildOptionsEditingDone(Sender: TObject);
     procedure EditDblClickDelete(Sender: TObject);
+    procedure EditScriptClick(Sender: TObject);
     procedure FormClose({%H-}Sender: TObject; var {%H-}CloseAction: TCloseAction);
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormDestroy({%H-}Sender: TObject);
@@ -163,8 +174,14 @@ type
     function GetAllowOnlinePatching:boolean;
     procedure SetAllowOnlinePatching(value:boolean);
 
+    function GetApplyLocalChanges:boolean;
+    procedure SetApplyLocalChanges(value:boolean);
+
     function GetAddContext:boolean;
     procedure SetAddContext(value:boolean);
+
+    function GetAskConfirmation:boolean;
+    procedure SetAskConfirmation(value:boolean);
 
     function GetHTTPProxyHost:string;
     function GetHTTPProxyPort:integer;
@@ -190,6 +207,16 @@ type
     procedure SetFPCBranch(value:string);
     function GetLazarusBranch:string;
     procedure SetLazarusBranch(value:string);
+
+    function GetFPCPreScript:string;
+    procedure SetFPCPreScript(value:string);
+    function GetFPCPostScript:string;
+    procedure SetFPCPostScript(value:string);
+
+    function GetLazarusPreScript:string;
+    procedure SetLazarusPreScript(value:string);
+    function GetLazarusPostScript:string;
+    procedure SetLazarusPostScript(value:string);
 
     function GetFPCPatches:string;
     procedure SetFPCPatches(value:string);
@@ -218,6 +245,8 @@ type
     function  GetCrossAvailable(aCPU:TCPU;aOS:TOS;aSubarch:TSUBARCH): boolean;
     procedure SetCrossAvailable(aCPU:TCPU;aOS:TOS;aSubarch:TSUBARCH;aValue:boolean);
 
+    procedure ResetAll;
+
     property Repo:boolean read GetRepo write SetRepo;
     property PackageRepo:boolean read GetPackageRepo write SetPackageRepo;
 
@@ -240,7 +269,9 @@ type
     property GetUpdates:boolean read GetCheckUpdates write SetCheckUpdates;
     property UseSoftFloat:boolean read GetUseSoftFloat write SetUseSoftFloat;
     property OnlinePatching:boolean read GetAllowOnlinePatching write SetAllowOnlinePatching;
+    property ApplyLocalChanges:boolean read GetApplyLocalChanges write SetApplyLocalChanges;
     property AddContext:boolean read GetAddContext write SetAddContext;
+    property AskConfirmation:boolean read GetAskConfirmation write SetAskConfirmation;
 
     property HTTPProxyHost:string read GetHTTPProxyHost;
     property HTTPProxyPort:integer read GetHTTPProxyPort;
@@ -261,6 +292,12 @@ type
 
     property FPCBranch:string read GetFPCBranch write SetFPCBranch;
     property LazarusBranch:string read GetLazarusBranch write SetLazarusBranch;
+
+    property FPCPreScript:string read GetFPCPreScript write SetFPCPreScript;
+    property FPCPostScript:string read GetFPCPostScript write SetFPCPostScript;
+
+    property LazarusPreScript:string read GetLazarusPreScript write SetLazarusPreScript;
+    property LazarusPostScript:string read GetLazarusPostScript write SetLazarusPostScript;
 
     property FPCPatches:string read GetFPCPatches write SetFPCPatches;
     property LazPatches:string read GetLazPatches write SetLazPatches;
@@ -308,7 +345,7 @@ resourcestring
   CaptionCheckSendInfo = 'Send location and install info (default=no)';
 
   HintCheckFpcupBootstrappersOnly = '';
-  CaptionCheckFpcupBootstrappersOnly = 'Only use fpcup bootstrappers (default=no)';
+  CaptionCheckFpcupBootstrappersOnly = 'Only use fpcup bootstrappers (default=yes)';
 
   HintCheckForceLocalRepoClient = 'Use the repo-client by fpcupdeluxe.';
   CaptionCheckForceLocalRepoClient = 'Use local repo-client (default=no)';
@@ -322,8 +359,14 @@ resourcestring
   HintCheckEnableOnlinePatching = 'Fpcupdeluxe can patch the sources automagically by using online patches.';
   CaptionCheckEnableOnlinePatching = 'Allow patching of sources by online patches.';
 
+  HintCheckApplyLocalChanges = 'Fpcupdeluxe can re-apply the local changes automagically by using local auto-patch.';
+  CaptionCheckApplyLocalChanges = 'Re-apply local changes when updating.';
+
   HintCheckAddContext = 'Double clicking on FPC and Lazarus files will open Lazarus.';
   CaptionCheckAddContext = 'Add context for FPC and Lazarus files.';
+
+  HintCheckAskConfirmation = 'Show a confirmation dialog with yes/no before every build.';
+  CaptionCheckAskConfirmation = 'Always ask for confirmation (default=yes).';
 
 var
   Form2: TForm2;
@@ -435,20 +478,36 @@ begin
     Append(CaptionCheckGetUpdates);
     Append(CaptionUseSoftFloat80bit);
     Append(CaptionCheckEnableOnlinePatching);
+    Append(CaptionCheckApplyLocalChanges);
     Append(CaptionCheckAddContext);
+    Append(CaptionCheckAskConfirmation);
   end;
+
+  AskConfirmation        := True;
+  FpcupBootstrappersOnly := True;
+  Repo                   := True;
+  PackageRepo            := False;
+  IncludeHelp            := False;
+  IncludeLCL             := False;
+  {$ifdef RemoteLog}
+  SendInfo        := False;
+  {$endif}
 
   with TIniFile.Create(SafeGetApplicationPath+installerUniversal.DELUXEFILENAME) do
   try
-    Repo:=ReadBool('General','GetRepo',True);
-    PackageRepo:=ReadBool('General','GetPackageRepo',False);
+    Repo:=ReadBool('General','GetRepo',Repo);
+    PackageRepo:=ReadBool('General','GetPackageRepo',PackageRepo);
 
-    IncludeHelp:=ReadBool('General','IncludeHelp',False);
-    IncludeLCL:=ReadBool('Cross','IncludeLCL',False);
+    IncludeHelp:=ReadBool('General','IncludeHelp',IncludeHelp);
+    IncludeLCL:=ReadBool('Cross','IncludeLCL',IncludeLCL);
 
     {$ifdef RemoteLog}
-    SendInfo:=ReadBool('General','SendInfo',False);
+    SendInfo:=ReadBool('General','SendInfo',SendInfo);
     {$endif}
+
+    GetUpdates:=ReadBool('General','GetUpdates',GetUpdates);
+
+    AskConfirmation:=ReadBool('General','AskConfirmation',AskConfirmation);
 
     EditHTTPProxyHost.Text:=ReadString('ProxySettings','HTTPProxyURL','');
     EditHTTPProxyPort.Text:=InttoStr(ReadInteger('ProxySettings','HTTPProxyPort',8080));
@@ -485,9 +544,7 @@ begin
 
   SplitFPC:=true;
   MakeJobs:=true;
-
-  Self.LazarusDebug:=true;
-
+  LazarusDebug:=true;
   {$ifdef win64}
   MakeJobs:=False;
   {$endif}
@@ -665,7 +722,6 @@ begin
       aIndex:=rgrpSubarch.Items.IndexOf(GetSubarch(LocalSUBARCH));
       rgrpSubarch.ItemIndex:=aIndex;
     end;
-
   end;
 
 end;
@@ -702,6 +758,26 @@ begin
   end;
 end;
 
+procedure TForm2.EditScriptClick(Sender: TObject);
+var
+  aEdit:TEdit;
+begin
+  aEdit:=TEdit(Sender);
+  {$ifdef MSWindows}
+  OpenDialog1.Filter:='Script|*.bat|All|*.*';
+  {$else}
+  OpenDialog1.Filter:='Script|*.sh|All|*.*';
+  {$endif MSWindows}
+  OpenDialog1.FilterIndex:=1;
+  if OpenDialog1.Execute then
+  begin
+    aEdit.Text:=ExtractFileName(OpenDialog1.FileName);
+    if Sender=EditFPCPreInstall then
+    begin
+    end;
+  end;
+end;
+
 procedure TForm2.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   SetSelectedSubArch(LocalCPU,LocalOS,LocalSUBARCH);
@@ -718,6 +794,7 @@ var
   FullPatchPath: string;
   aListBox:TListBox;
 begin
+  OpenDialog1.Filter:='Diff|*.diff|Patch|*.patch|All|*.*';
   OpenDialog1.FilterIndex:=1;
   if OpenDialog1.Execute then
   begin
@@ -880,6 +957,10 @@ begin
     WriteBool('General','SendInfo',SendInfo);
     {$endif}
 
+    WriteBool('General','GetUpdates',GetUpdates);
+
+    WriteBool('General','AskConfirmation',AskConfirmation);
+
     WriteString('ProxySettings','HTTPProxyURL',EditHTTPProxyHost.Text);
     if TryStrToInt(EditHTTPProxyPort.Text,i) then WriteInteger('ProxySettings','HTTPProxyPort',i);
     WriteString('ProxySettings','HTTPProxyUser',EditHTTPProxyUser.Text);
@@ -923,7 +1004,6 @@ begin
         if CPU=cpuNone then continue;
 
         // skip non-combi's to reduce size of ini-file
-        if ((OS=amiga) AND (CPU<>m68k)) then continue;
         if ((OS=morphos) AND (CPU<>powerpc)) then continue;
         if ((OS=java) AND (CPU<>jvm)) OR ((CPU=jvm) AND (OS<>java) AND (OS<>android)) then continue;
         if (OS=ultibo) AND ((CPU<>arm) AND (CPU<>aarch64)) then continue;
@@ -939,6 +1019,7 @@ begin
 
 
         if (CPU=xtensa) AND ((OS<>linux) AND (OS<>freertos)) then continue;
+        if (CPU=m68k) AND ((OS<>linux) AND (OS<>amiga)) then continue;
         if (CPU=powerpc) AND ((OS<>aix) AND (OS<>linux) AND (OS<>darwin)) then continue;
         if (CPU=powerpc64) AND ((OS<>aix) AND (OS<>linux) AND (OS<>darwin)) then continue;
         if (CPU=mips) AND (OS<>linux) then continue;
@@ -1000,17 +1081,23 @@ end;
 
 procedure TForm2.IniPropStorageSettingsRestoringProperties(Sender: TObject);
 begin
+  {$ifdef Haiku}
+  {$else}
   SessionProperties := 'WindowState;Width;Height;Top;Left;';
+  {$endif}
   //Width := MulDiv(Width, 96, Screen.PixelsPerInch);
   //Height := MulDiv(Height, 96, Screen.PixelsPerInch);
 end;
 
 procedure TForm2.IniPropStorageSettingsSavingProperties(Sender: TObject);
 begin
+  {$ifdef Haiku}
+  {$else}
   if Self.WindowState=wsMaximized then
     SessionProperties := 'WindowState;'
   else
     SessionProperties := 'WindowState;Width;Height;Top;Left;';
+  {$endif}
 end;
 
 procedure TForm2.rgrpSearchOptionsSelectionChanged(Sender: TObject);
@@ -1325,6 +1412,15 @@ begin
   SetCheckState(CaptionCheckEnableOnlinePatching,value);
 end;
 
+function TForm2.GetApplyLocalChanges:boolean;
+begin
+  result:=GetCheckState(CaptionCheckApplyLocalChanges);
+end;
+procedure TForm2.SetApplyLocalChanges(value:boolean);
+begin
+  SetCheckState(CaptionCheckApplyLocalChanges,value);
+end;
+
 function TForm2.GetAddContext:boolean;
 begin
   result:=GetCheckState(CaptionCheckAddContext);
@@ -1334,6 +1430,14 @@ begin
   SetCheckState(CaptionCheckAddContext,value);
 end;
 
+function TForm2.GetAskConfirmation: boolean;
+begin
+  result := GetCheckState(CaptionCheckAskConfirmation);
+end;
+procedure TForm2.SetAskConfirmation(value: boolean);
+begin
+  SetCheckState(CaptionCheckAskConfirmation, value);
+end;
 
 function TForm2.GetFPCOptions:string;
 begin
@@ -1416,6 +1520,40 @@ end;
 procedure TForm2.SetLazarusBranch(value:string);
 begin
   EditLazarusBranch.Text:=value;
+end;
+
+function TForm2.GetFPCPreScript:string;
+begin
+  result:=EditFPCPreInstall.Text;
+end;
+procedure TForm2.SetFPCPreScript(value:string);
+begin
+  EditFPCPreInstall.Text:=value;
+end;
+function TForm2.GetFPCPostScript:string;
+begin
+  result:=EditFPCPostInstall.Text;
+end;
+procedure TForm2.SetFPCPostScript(value:string);
+begin
+  EditFPCPostInstall.Text:=value;
+end;
+
+function TForm2.GetLazarusPreScript:string;
+begin
+  result:=EditLazarusPreInstall.Text;
+end;
+procedure TForm2.SetLazarusPreScript(value:string);
+begin
+  EditLazarusPreInstall.Text:=value;
+end;
+function TForm2.GetLazarusPostScript:string;
+begin
+  result:=EditLazarusPostInstall.Text;
+end;
+procedure TForm2.SetLazarusPostScript(value:string);
+begin
+  EditLazarusPostInstall.Text:=value;
 end;
 
 function TForm2.GetHTTPProxyHost:string;
@@ -1522,6 +1660,27 @@ end;
 procedure TForm2.SetLazPatches(value:string);
 begin
   SetPatches(value,true);
+end;
+
+procedure TForm2.ResetAll;
+begin
+  FPCOptions:='';
+  LazarusOptions:='';
+
+  FPCRevision:='';
+  LazarusRevision:='';
+
+  FPCBranch:='';
+  LazarusBranch:='';
+
+  FPCPreScript:='';
+  FPCPostScript:='';
+
+  LazarusPreScript:='';
+  LazarusPostScript:='';
+
+  FPCPatches:='';
+  LazPatches:='';
 end;
 
 end.
