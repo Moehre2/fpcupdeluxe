@@ -59,8 +59,8 @@ type
     pbDownloads: TProgressBar;
     lblBytes: TLabel;
     pbBytes: TProgressBar;
-    procedure FormCreate(Sender: TObject);
-    procedure FormActivate(Sender: TObject);
+    procedure FormCreate({%H-}Sender: TObject);
+    procedure FormActivate({%H-}Sender: TObject);
   private
     FDownloads: Array of TDownload;
     FSize: Int64;
@@ -72,7 +72,7 @@ type
     procedure GetSocketHandler(Sender: TObject; const UseSSL: Boolean;
       out AHandler: TSocketHandler);
 {$ENDIF}
-    procedure DataReceived(Sender : TObject; const {%H-}ContentLength, CurrentPos : Int64);
+    procedure DataReceived({%H-}Sender : TObject; const {%H-}ContentLength, CurrentPos : Int64);
 {$ENDIF}
     procedure DoDownload(const AIndex: Integer);
   public
@@ -122,7 +122,8 @@ begin
   if pbDownloads.Visible then pbDownloads.Max:= Length(FDownloads);
   index:=0;
   repeat
-    lblTop.Caption:= Format('File: %s',[MiniMizeName(FDownloads[index].Filename, lblTop.Canvas, lblTop.Parent.Width-(lblTop.Left*2))]);
+    // Adjust text width and text length to be exactly the same width as the progress bar.
+    lblTop.Caption:= Format('File: %s',[MiniMizeName(FDownloads[index].Filename, lblTop.Canvas, pbBytes.Width)]);
     //lblTop.Caption:= Format('File: %s',[FDownloads[index].Filename]);
     if lblDownloads.Visible then lblDownloads.Caption:= Format('%d of %d', [index + 1, Length(FDownloads)]);
     Application.ProcessMessages;

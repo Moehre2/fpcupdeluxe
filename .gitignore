@@ -44,6 +44,7 @@ Temporary Items
 
 *.ppu
 *.lps
+!fpc*.lps
 *.o
 *.obj
 *.s
@@ -58,16 +59,15 @@ Temporary Items
 *.bak
 *.local
 
-*.pot
-!./languages/*.po
+languages/*.mo
+languages/*.pot
+!languages/fpcupdeluxe-i386-win32.pot
 
 logger/secrets.inc
 secrets/
 
 *.log
-libfpcup/
-libfpclazup/
-libfpclazupdeluxe/
+buildlibs/
 backup/
 icons/
 bin/
@@ -80,6 +80,9 @@ logger/LAMWmORMotProject/gen/
 crosstools/
 bootstrappers/
 deluxebin/
+upbin/
 lib/
 lib*/
-!fpcuptools/*
+!/fpcuptools/*
+!/libQt5Pas*
+!/libQt6Pas*
